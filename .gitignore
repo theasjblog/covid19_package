@@ -1,0 +1,13 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+covid19Visulizer.Rcheck/
+covid19Visulizer*.tar.gz
+covid19Visulizer*.tgz
+covid19Visualizer.Rcheck/
+covid19Visualizer*.tar.gz
+covid19Visualizer*.tgz
+JHUData-master.zip
+COVID-19-master/
+*.Rproj

@@ -1,0 +1,14 @@
+Package: covid19Visualizer
+Type: Package
+Title: COVID-19 visualization
+Version: 0.0.1
+Author: Adrian Joseph
+Maintainer: Adrian Joseph <tequilacanaria@hotmail.it>
+Description: Visualiza COVID-19  data from JHU
+Imports: here
+Suggests: knitr, rmarkdown, testthat
+VignetteBuilder: knitr
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.0

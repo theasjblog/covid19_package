@@ -1,0 +1,10 @@
+^renv$
+^renv\.lock$
+^.*\.Rproj$
+^\.Rproj\.user$
+^covid19Visulizer\.Rcheck$
+^covid19Visulizer.*\.tar\.gz$
+^covid19Visulizer.*\.tgz$
+^covid19Visualizer\.Rcheck$
+^covid19Visualizer.*\.tar\.gz$
+^covid19Visualizer.*\.tgz$
