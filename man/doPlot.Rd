@@ -4,12 +4,14 @@
 \alias{doPlot}
 \title{doPlot}
 \usage{
-doPlot(df, typePlot, country = NULL)
+doPlot(df, typePlot, countryPlot = NULL, scale = "linear")
 }
 \arguments{
 \item{typePlot}{cases, deaths or recovered}
 
-\item{country}{the country to plot}
+\item{countryPlot}{the country to plot}
+
+\item{scale}{if to plot in linear or log scale}
 
 \item{data}{df of data from JHU}
 }

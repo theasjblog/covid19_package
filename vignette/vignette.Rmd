@@ -1,0 +1,66 @@
+---
+title: "covid19Visualizer"
+author: "Adrian Joseph"
+date: "3/29/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('covid19Visualizer')
+```
+
+#Introduction
+
+Simple data visualizer for COVID-19 diffusion.
+
+## Data
+
+Data is provided by Johns Hopkins University and is obtained from <https://github.com/CSSEGISandData/COVID-19>.
+
+New data is obtained with (a network connection is required):
+
+```{r getNewData}
+newData <- refreshData()
+```
+
+## Plot a single metric
+
+The data provide time series for total cases, deatsh and recoveries.
+
+Each metric can be plotted for selected countries using:
+
+```{r doPlot}
+# cases
+doPlot(newData, 'cases', c('Italy', 'China'))
+
+# deaths
+doPlot(newData, 'deaths', c('Italy', 'China'))
+
+# recovered
+doPlot(newData, 'recovered', c('Italy', 'China'))
+```
+
+Each plot can be plotted in log10 scale:
+```{r doPlotLog}
+# cases
+doPlot(newData, 'cases', c('Italy', 'China'), scale = 'log')
+
+# deaths
+doPlot(newData, 'deaths', c('Italy', 'China'), scale = 'log')
+
+# recovered
+doPlot(newData, 'recovered', c('Italy', 'China'), scale = 'log')
+```
+
+
+## Plot all metrics for selected countires
+
+```{r plotAllMetrics}
+# linear
+plotAllMetrics(newData, c('Italy', 'China'))
+
+# log
+plotAllMetrics(newData, c('Italy', 'China'), scale = 'log')
+```
+

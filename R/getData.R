@@ -14,14 +14,23 @@ refreshData <- function(){
   cases <- read.csv2(paste0(rootData,
                             '/time_series_covid19_confirmed_global.csv'),
                      sep = ',')
+  cases <- aggregate(cbind(cases[,seq(5,ncol(cases))]),
+                  by=list(country=cases$Country.Region),
+                  FUN=sum)
   cases$type <- 'cases'
   deaths <- read.csv2(paste0(rootData,
                                  '/time_series_covid19_deaths_global.csv'),
                       sep = ',')
+  deaths <- aggregate(cbind(deaths[,seq(5,ncol(deaths))]),
+                     by=list(country=deaths$Country.Region),
+                     FUN=sum)
   deaths$type <- 'deaths'
   recovered <- read.csv2(paste0(rootData,
                                     '/time_series_covid19_recovered_global.csv'),
                          sep = ',')
+  recovered <- aggregate(cbind(recovered[,seq(5,ncol(recovered))]),
+                      by=list(country=recovered$Country.Region),
+                      FUN=sum)
   recovered$type <- 'recovered'
   
   allData <- rbind(cases, deaths, recovered)
@@ -47,13 +56,14 @@ getDates <- function(jhuDates){
 #' @description plot data for a single country
 #' @param data df of data from JHU
 #' @param typePlot cases, deaths or recovered
-#' @param country the country to plot
+#' @param countryPlot the country to plot
+#' @param scale if to plot in linear or log scale
 #' @export
-doPlot <- function(df, typePlot, country = NULL){
+doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear'){
   if(!typePlot %in% c('cases', 'deaths', 'recovered')){
     stop('Invalid "type"')
   }
-  if(!is.null(country) && !country %in% df$Country.Region){
+  if(!is.null(countryPlot) && !countryPlot %in% df$country){
     stop('Invalid "country"')
   }
   
@@ -62,19 +72,19 @@ doPlot <- function(df, typePlot, country = NULL){
     filter(type == typePlot)
   
   #filter out the requested country
-  if (!is.null(country)){
+  if (!is.null(countryPlot)){
     df <- df %>%
-      filter(Country.Region %in% country)
+      filter(country %in% countryPlot)
   }
-  #summarise countries with multiple regions
-  df <- aggregate(cbind(df[,seq(5,ncol(df)-1)]),
-                    by=list(country=df$Country.Region),
-                    FUN=sum)
   
+  df <- df[,-ncol(df)]
   values <- gather(df, dates, values, 2:ncol(df))
   values$dates <- as.Date(getDates(values$dates))
   values$country <- factor(values$country)
-  values <- values[order(values$country),]
+  
+  if(scale == 'log'){
+    values$values <- log10(values$values)
+  }
   
   p <- ggplot(data = values, aes(x = dates,
                                  y = values,
@@ -92,37 +102,49 @@ doPlot <- function(df, typePlot, country = NULL){
 #' @title plotAllMetrics
 #' @description plot cases, deaths and recovered in a single plot
 #' @param allDf list of all Df metrics
-#' @param country character of a country
+#' @param countryPlot character of a country
+#' @param scale character for plot in linear or log scale
 #' @export
-plotAllMetrics <- function(allDf, country){
+plotAllMetrics <- function(allDf, countryPlot, scale = 'linear'){
   #filter out the requested country
   df <- allDf %>%
-      filter(Country.Region %in% country)
-  
+      filter(country %in% countryPlot)
+  countries <- as.character(df$country)
+  df$country <- factor(countries)
   sp <- split(df, df$type)
   for (i in 1:length(sp)){
     d <- sp[[i]]
     thisType <- names(sp)[i]
-    #summarise countries with multiple regions
-    d <- aggregate(cbind(d[,seq(5,ncol(d)-1)]),
-                    by=list(country=d$Country.Region),
-                    FUN=sum)
-    values <- gather(d, dates, values, 2:ncol(d))
-    values$dates <- as.Date(getDates(values$dates))
-    values$country <- factor(values$country)
-    values <- values[order(values$country),]
-    values$type <- thisType
-    sp[[i]] <- values
+    sp1 <- split(d, d$country)
+    for (ii in 1:length(sp1)){
+      dd <- sp1[[ii]]
+      thisCountry <- dd[1,1]
+      dd <- dd[,-1]
+      values <- gather(dd, dates, values, 1:ncol(dd)-1)
+      values$dates <- as.Date(getDates(values$dates))
+      values$country <- thisCountry
+      values$type <- thisType
+      sp1[[ii]] <- values
+    }
+    sp[[i]] <- bind_rows(sp1)
   }
   df <- bind_rows(sp)
+  countries <- as.character(df$country)
+  df$country <- factor(countries)
+  types <- as.character(df$type)
+  df$type <- factor(types)
+  
+  if(scale == 'log'){
+    df$values <- log10(df$values)
+  }
   
   p <- ggplot(data = df, aes(x = dates,
                              y = values,
                              group = type)) +
     geom_line(aes(color = type)) +
-    labs(x = "Date", 
+    labs(x = "Date",
          y = "#",
-         title = toupper(paste(country, collapse = ', '))) +
+         title = toupper(paste(countryPlot, collapse = ', '))) +
     theme_minimal() +
   facet_grid(rows = vars(country))
   
