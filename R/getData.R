@@ -58,8 +58,10 @@ getDates <- function(jhuDates){
 #' @param typePlot cases, deaths or recovered
 #' @param countryPlot the country to plot
 #' @param scale if to plot in linear or log scale
+#' @param plotDiff logical if we should plot the raw number (false)
+#' or the rate of change (true)
 #' @export
-doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear'){
+doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff = FALSE){
   if(!typePlot %in% c('cases', 'deaths', 'recovered')){
     stop('Invalid "type"')
   }
@@ -81,6 +83,15 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear'){
   values <- gather(df, dates, values, 2:ncol(df))
   values$dates <- as.Date(getDates(values$dates))
   values$country <- factor(values$country)
+  if(plotDiff){
+    sp <- split(values, values$country)
+    for(i in 1:length(sp)){
+      d <- sp[[i]]
+      d$values <- c(0, diff(d$values))
+      sp[[i]] <- d
+    }
+    values <- bind_rows(sp)
+  }
   
   if(scale == 'log'){
     values$values <- log10(values$values)
@@ -104,8 +115,10 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear'){
 #' @param allDf list of all Df metrics
 #' @param countryPlot character of a country
 #' @param scale character for plot in linear or log scale
+#' @param plotDiff logical if we should plot the raw number (false)
+#' or the rate of change (true)
 #' @export
-plotAllMetrics <- function(allDf, countryPlot, scale = 'linear'){
+plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE){
   #filter out the requested country
   df <- allDf %>%
       filter(country %in% countryPlot)
@@ -124,6 +137,9 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear'){
       values$dates <- as.Date(getDates(values$dates))
       values$country <- thisCountry
       values$type <- thisType
+      if (plotDiff){
+        values$values <- c(0, diff(values$values))
+      }
       sp1[[ii]] <- values
     }
     sp[[i]] <- bind_rows(sp1)
@@ -138,6 +154,7 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear'){
     df$values <- log10(df$values)
   }
   
+  
   p <- ggplot(data = df, aes(x = dates,
                              y = values,
                              group = type)) +
@@ -149,6 +166,18 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear'){
   facet_grid(rows = vars(country))
   
   return(p)
+}
+
+#' @title getSummaryTable
+#' @description summary table for all data obtained from JHU
+#' @param df JHU data.frame
+#' @return a summary data.frame
+#' @export
+getSummaryTable <- function(df){
+  res <- data.frame(country = df$country,
+                    type = df$type,
+                    total = df[, ncol(df)-1])
+  return(res)
 }
 
 

@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library('covid19Visualizer')
+library('kableExtra')
 ```
 
 #Introduction
@@ -53,6 +54,17 @@ doPlot(newData, 'deaths', c('Italy', 'China'), scale = 'log')
 doPlot(newData, 'recovered', c('Italy', 'China'), scale = 'log')
 ```
 
+We can also plot the variation, rather than the raw numbers:
+```{r doPlotRate}
+# cases
+doPlot(newData, 'cases', c('Italy', 'China'), plotDiff = TRUE)
+
+# deaths
+doPlot(newData, 'deaths', c('Italy', 'China'), plotDiff = TRUE)
+
+# recovered
+doPlot(newData, 'recovered', c('Italy', 'China'), plotDiff = TRUE)
+```
 
 ## Plot all metrics for selected countires
 
@@ -64,3 +76,14 @@ plotAllMetrics(newData, c('Italy', 'China'))
 plotAllMetrics(newData, c('Italy', 'China'), scale = 'log')
 ```
 
+And the rate:
+
+```{r plotAllMetricsRate}
+plotAllMetrics(newData, c('Italy', 'China'), plotDiff = TRUE)
+```
+
+## Summary table
+
+```{r summaryTable}
+kable(getSummaryTable(newData))
+```

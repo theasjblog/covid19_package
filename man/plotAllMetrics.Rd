@@ -4,7 +4,7 @@
 \alias{plotAllMetrics}
 \title{plotAllMetrics}
 \usage{
-plotAllMetrics(allDf, countryPlot, scale = "linear")
+plotAllMetrics(allDf, countryPlot, scale = "linear", plotDiff = FALSE)
 }
 \arguments{
 \item{allDf}{list of all Df metrics}
@@ -12,6 +12,9 @@ plotAllMetrics(allDf, countryPlot, scale = "linear")
 \item{countryPlot}{character of a country}
 
 \item{scale}{character for plot in linear or log scale}
+
+\item{plotDiff}{logical if we should plot the raw number (false)
+or the rate of change (true)}
 }
 \description{
 plot cases, deaths and recovered in a single plot

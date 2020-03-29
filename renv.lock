@@ -13,12 +13,40 @@
     ]
   },
   "Packages": {
+    "BH": {
+      "Package": "BH",
+      "Version": "1.72.0-3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "8f9ce74c6417d61f0782cbae5fd2b7b0"
+    },
     "R6": {
       "Package": "R6",
       "Version": "2.4.1",
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "292b54f8f4b94669b08f94e5acce6be2"
+    },
+    "RColorBrewer": {
+      "Package": "RColorBrewer",
+      "Version": "1.1-2",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "e031418365a7f7a766181ab5a41a5716"
+    },
+    "Rcpp": {
+      "Package": "Rcpp",
+      "Version": "1.0.4",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "5ef9c463e30f8aea49c293e4b8d9d7be"
+    },
+    "askpass": {
+      "Package": "askpass",
+      "Version": "1.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "e8a22846fff485f0be3770c2da758713"
     },
     "assertthat": {
       "Package": "assertthat",
@@ -34,6 +62,13 @@
       "Repository": "RSPM",
       "Hash": "e9f705633dc932bfd5b02b17a5053a06"
     },
+    "base64enc": {
+      "Package": "base64enc",
+      "Version": "0.1-3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "543776ae6848fde2f48ff3816d0628bc"
+    },
     "callr": {
       "Package": "callr",
       "Version": "3.4.3",
@@ -48,12 +83,33 @@
       "Repository": "RSPM",
       "Hash": "ff0becff7bfdfe3f75d29aff8f3172dd"
     },
+    "clipr": {
+      "Package": "clipr",
+      "Version": "0.7.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "08cf4045c149a0f0eaf405324c7495bd"
+    },
+    "colorspace": {
+      "Package": "colorspace",
+      "Version": "1.4-1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "6b436e95723d1f0e861224dd9b094dfb"
+    },
     "crayon": {
       "Package": "crayon",
       "Version": "1.3.4",
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "0d57bc8e27b7ba9e45dba825ebc0de6b"
+    },
+    "curl": {
+      "Package": "curl",
+      "Version": "4.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "2b7d10581cc730804e9ed178c8374bd6"
     },
     "desc": {
       "Package": "desc",
@@ -90,6 +146,13 @@
       "Repository": "RSPM",
       "Hash": "7fce217eaaf8016e72065e85c73027b5"
     },
+    "farver": {
+      "Package": "farver",
+      "Version": "2.0.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "dad6793a5a1f73c8e91f1a1e3e834b05"
+    },
     "glue": {
       "Package": "glue",
       "Version": "1.3.2",
@@ -111,12 +174,61 @@
       "Repository": "RSPM",
       "Hash": "4dc5bb88961e347a0f4d8aad597cbfac"
     },
+    "hms": {
+      "Package": "hms",
+      "Version": "0.5.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "726671f634529d470545f9fd1a9d1869"
+    },
+    "htmltools": {
+      "Package": "htmltools",
+      "Version": "0.4.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "2d7691222f82f41e93f6d30f169bd5e1"
+    },
+    "httr": {
+      "Package": "httr",
+      "Version": "1.4.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "7146fea4685b4252ebf478978c75f597"
+    },
+    "jsonlite": {
+      "Package": "jsonlite",
+      "Version": "1.6.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "84b0ee361e2f78d6b7d670db9471c0c5"
+    },
+    "kableExtra": {
+      "Package": "kableExtra",
+      "Version": "1.1.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "37e11c605b3c0b7207763beda52c8535"
+    },
     "knitr": {
       "Package": "knitr",
       "Version": "1.28",
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "915a6f0134cdbdf016d7778bc80b2eda"
+    },
+    "labeling": {
+      "Package": "labeling",
+      "Version": "0.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "73832978c1de350df58108c745ed0e3e"
+    },
+    "lifecycle": {
+      "Package": "lifecycle",
+      "Version": "0.2.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "361811f31f71f8a617a9a68bf63f1f42"
     },
     "magrittr": {
       "Package": "magrittr",
@@ -139,12 +251,40 @@
       "Repository": "RSPM",
       "Hash": "e87a35ec73b157552814869f45a63aa3"
     },
+    "munsell": {
+      "Package": "munsell",
+      "Version": "0.5.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "6dfe8bf774944bd5595785e3229d8771"
+    },
+    "openssl": {
+      "Package": "openssl",
+      "Version": "1.4.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "49f7258fd86ebeaea1df24d9ded00478"
+    },
+    "pillar": {
+      "Package": "pillar",
+      "Version": "1.4.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "fa3ed60396b6998d0427c57dab90fba4"
+    },
     "pkgbuild": {
       "Package": "pkgbuild",
       "Version": "1.0.6",
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "899835dfe286963471cbdb9591f8f94f"
+    },
+    "pkgconfig": {
+      "Package": "pkgconfig",
+      "Version": "2.0.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "01f28d4278f15c76cddbea05899c5d6f"
     },
     "pkgload": {
       "Package": "pkgload",
@@ -181,6 +321,13 @@
       "Repository": "RSPM",
       "Hash": "98777535b61c57d1749344345e2a4ccd"
     },
+    "readr": {
+      "Package": "readr",
+      "Version": "1.3.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "af8ab99cd936773a148963905736907b"
+    },
     "renv": {
       "Package": "renv",
       "Version": "0.9.3",
@@ -194,6 +341,13 @@
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "1cc1b38e4db40ea6eb19ab8080bbed3b"
+    },
+    "rmarkdown": {
+      "Package": "rmarkdown",
+      "Version": "2.1",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "9d1c61d476c448350c482d6664e1b28b"
     },
     "rprojroot": {
       "Package": "rprojroot",
@@ -209,6 +363,27 @@
       "Repository": "RSPM",
       "Hash": "33a5b27a03da82ac4b1d43268f80088a"
     },
+    "rvest": {
+      "Package": "rvest",
+      "Version": "0.3.5",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "6a20c2cdf133ebc7ac45888c9ccc052b"
+    },
+    "scales": {
+      "Package": "scales",
+      "Version": "1.1.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "a1c68369c629ea3188d0676e37069c65"
+    },
+    "selectr": {
+      "Package": "selectr",
+      "Version": "0.4-2",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "3838071b66e0c566d55cc26bd6e27bf4"
+    },
     "stringi": {
       "Package": "stringi",
       "Version": "1.4.6",
@@ -223,12 +398,61 @@
       "Repository": "RSPM",
       "Hash": "0759e6b6c0957edb1311028a49a35e76"
     },
+    "sys": {
+      "Package": "sys",
+      "Version": "3.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "507f3116a38d37ad330a038b3be07b66"
+    },
     "testthat": {
       "Package": "testthat",
       "Version": "2.3.2",
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "0829b987b8961fb07f3b1b64a2fbc495"
+    },
+    "tibble": {
+      "Package": "tibble",
+      "Version": "2.1.3",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "8248ee35d1e15d1e506f05f5a5d46a75"
+    },
+    "tinytex": {
+      "Package": "tinytex",
+      "Version": "0.20",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "d2cef450cbbf081b4a2ef1067fae9f32"
+    },
+    "utf8": {
+      "Package": "utf8",
+      "Version": "1.1.4",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "4a5081acfb7b81a572e4384a7aaf2af1"
+    },
+    "vctrs": {
+      "Package": "vctrs",
+      "Version": "0.2.4",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "6c839a149a30cb4ffc70443efa74c197"
+    },
+    "viridisLite": {
+      "Package": "viridisLite",
+      "Version": "0.3.0",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "ce4f6271baa94776db692f1cb2055bee"
+    },
+    "webshot": {
+      "Package": "webshot",
+      "Version": "0.5.2",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "e99d80ad34457a4853674e89d5e806de"
     },
     "withr": {
       "Package": "withr",
@@ -243,6 +467,13 @@
       "Source": "Repository",
       "Repository": "RSPM",
       "Hash": "ccd8453a7b9e380628f6cd2862e46cad"
+    },
+    "xml2": {
+      "Package": "xml2",
+      "Version": "1.2.5",
+      "Source": "Repository",
+      "Repository": "RSPM",
+      "Hash": "13efdfe4c591af40c1c29dc6408281ed"
     },
     "yaml": {
       "Package": "yaml",
