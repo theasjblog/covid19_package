@@ -95,7 +95,9 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff 
     values <- bind_rows(sp)
   }
   
+  xLabel <- "Date"
   if(align){
+    xLabel <- '# days'
     th <- switch(typePlot,
                  'cases' = 100,
                  'deaths' = 50,
@@ -131,7 +133,7 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff 
                                  y = values,
                                  group = country)) +
     geom_line(aes(color = country)) +
-    labs(x = "Date", 
+    labs(x = xLabel,
          y = "# cases",
          title = toupper(typePlot)) +
     theme_minimal()
