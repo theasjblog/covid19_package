@@ -59,9 +59,11 @@ getDates <- function(jhuDates){
 #' @param countryPlot the country to plot
 #' @param scale if to plot in linear or log scale
 #' @param plotDiff logical if we should plot the raw number (false)
+#' @param plotLim Dates max an min limits for the plot
+#' @param align logical If we should align by date of min number of cases/deaths/recovered
 #' or the rate of change (true)
 #' @export
-doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff = FALSE){
+doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff = FALSE, plotLim = NULL, align = FALSE){
   if(!typePlot %in% c('cases', 'deaths', 'recovered')){
     stop('Invalid "type"')
   }
@@ -93,11 +95,39 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff 
     values <- bind_rows(sp)
   }
   
+  if(align){
+    th <- switch(typePlot,
+                 'cases' = 100,
+                 'deaths' = 50,
+                 'recovered' = 100)
+    sp <- split(values, values$country)
+    for(i in 1:length(sp)){
+      d <- sp[[i]]
+      d <- d %>%
+        filter(values >= th)
+      d$dates <- seq(0,nrow(d)-1)
+      sp[[i]] <- d
+    }
+    values <- bind_rows(sp)
+  }
+  
+  
   if(scale == 'log'){
     values$values <- log10(values$values)
   }
   
-  p <- ggplot(data = values, aes(x = dates,
+  if (!is.null(plotLim)){
+    #assume they are between 0 an 100, so need to adapt to date or values
+    values$dateAsNum <- as.numeric(values$dates)-min(as.numeric(values$dates))
+    values$dateAsNum <- values$dateAsNum*100/max(values$dateAsNum)
+    values <- values %>%
+      filter(dateAsNum >= plotLim[1])
+    values <- values %>%
+      filter(dateAsNum <= plotLim[2])
+    
+  }
+
+    p <- ggplot(data = values, aes(x = dates,
                                  y = values,
                                  group = country)) +
     geom_line(aes(color = country)) +
@@ -115,10 +145,12 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff 
 #' @param allDf list of all Df metrics
 #' @param countryPlot character of a country
 #' @param scale character for plot in linear or log scale
-#' @param plotDiff logical if we should plot the raw number (false)
+#' @param plotDiff logical if we should plot the raw number (false) (NOT IMPLEMETED YET)
+#' #' @param plotLim Dates max an min limits for the plot (NOT IMPLEMETED YET)
+#' @param align logical If we should align by date of min number of cases/deaths/recovered
 #' or the rate of change (true)
 #' @export
-plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE){
+plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE, plotLim = NULL, align = FALSE){
   #filter out the requested country
   df <- allDf %>%
       filter(country %in% countryPlot)
@@ -153,7 +185,6 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALS
   if(scale == 'log'){
     df$values <- log10(df$values)
   }
-  
   
   p <- ggplot(data = df, aes(x = dates,
                              y = values,

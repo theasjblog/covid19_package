@@ -4,7 +4,14 @@
 \alias{plotAllMetrics}
 \title{plotAllMetrics}
 \usage{
-plotAllMetrics(allDf, countryPlot, scale = "linear", plotDiff = FALSE)
+plotAllMetrics(
+  allDf,
+  countryPlot,
+  scale = "linear",
+  plotDiff = FALSE,
+  plotLim = NULL,
+  align = FALSE
+)
 }
 \arguments{
 \item{allDf}{list of all Df metrics}
@@ -13,7 +20,10 @@ plotAllMetrics(allDf, countryPlot, scale = "linear", plotDiff = FALSE)
 
 \item{scale}{character for plot in linear or log scale}
 
-\item{plotDiff}{logical if we should plot the raw number (false)
+\item{plotDiff}{logical if we should plot the raw number (false) (NOT IMPLEMETED YET)
+#' @param plotLim Dates max an min limits for the plot (NOT IMPLEMETED YET)}
+
+\item{align}{logical If we should align by date of min number of cases/deaths/recovered
 or the rate of change (true)}
 }
 \description{

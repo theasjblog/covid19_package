@@ -4,7 +4,15 @@
 \alias{doPlot}
 \title{doPlot}
 \usage{
-doPlot(df, typePlot, countryPlot = NULL, scale = "linear", plotDiff = FALSE)
+doPlot(
+  df,
+  typePlot,
+  countryPlot = NULL,
+  scale = "linear",
+  plotDiff = FALSE,
+  plotLim = NULL,
+  align = FALSE
+)
 }
 \arguments{
 \item{typePlot}{cases, deaths or recovered}
@@ -13,7 +21,11 @@ doPlot(df, typePlot, countryPlot = NULL, scale = "linear", plotDiff = FALSE)
 
 \item{scale}{if to plot in linear or log scale}
 
-\item{plotDiff}{logical if we should plot the raw number (false)
+\item{plotDiff}{logical if we should plot the raw number (false)}
+
+\item{plotLim}{Dates max an min limits for the plot}
+
+\item{align}{logical If we should align by date of min number of cases/deaths/recovered
 or the rate of change (true)}
 
 \item{data}{df of data from JHU}
