@@ -11,30 +11,47 @@ refreshData <- function(){
   rootData <- here::here('COVID-19-master',
                          'csse_covid_19_data',
                          'csse_covid_19_time_series')
-  cases <- read.csv2(paste0(rootData,
-                            '/time_series_covid19_confirmed_global.csv'),
-                     sep = ',')
-  cases <- aggregate(cbind(cases[,seq(5,ncol(cases))]),
-                  by=list(country=cases$Country.Region),
-                  FUN=sum)
-  cases$type <- 'cases'
-  deaths <- read.csv2(paste0(rootData,
-                                 '/time_series_covid19_deaths_global.csv'),
-                      sep = ',')
-  deaths <- aggregate(cbind(deaths[,seq(5,ncol(deaths))]),
-                     by=list(country=deaths$Country.Region),
-                     FUN=sum)
-  deaths$type <- 'deaths'
-  recovered <- read.csv2(paste0(rootData,
-                                    '/time_series_covid19_recovered_global.csv'),
-                         sep = ',')
-  recovered <- aggregate(cbind(recovered[,seq(5,ncol(recovered))]),
-                      by=list(country=recovered$Country.Region),
-                      FUN=sum)
-  recovered$type <- 'recovered'
-  
-  allData <- rbind(cases, deaths, recovered)
+  cases <- getData(rootData, 'confirmed', 'cases')
+  deaths <- getData(rootData, 'deaths', 'deaths')
+  recovered <- getData(rootData, 'recovered', 'recovered')
   return(allData)
+}
+
+#' @title getData
+#' @description prep data by reading in thhe downloaded repo,
+#' joining coubtries with mopre than one area and aggregating
+#' @return data frame of cases, deaths and recovered
+getData <- function(rootData, fileName, typeIs){
+  fullFile <- paste0(rootData,
+                     paste0('/time_series_covid19_',
+                            fileName,
+                            '_global.csv')
+  )
+  dfOR <- read.csv2(fullFile, sep = ',')
+  df <- dfOR
+  for (i in 1:nrow(df)){
+    if (df$Province.State[i] != ''){
+      df$country[i] <- paste0(df$Country.Region[i], ', ',
+                           df$Province.State[i])
+    } else {
+      df$country[i] <- as.character(df$Country.Region[i])
+    }
+    
+    
+  }
+  df <- df[, seq(5, ncol(df))]
+  
+  df_aggregate <- aggregate(cbind(dfOR[,seq(5,ncol(dfOR))]),
+                            by=list(country=dfOR$Country.Region),
+                            FUN=sum)
+  df_aggregate$country <- as.character(df_aggregate$country)
+  
+  df <- rbind.data.frame(df_aggregate, df)
+  
+  df$type <- typeIs
+  
+  df <- df[!duplicated(df),]
+  return(df)
 }
 
 #' @title getDates
