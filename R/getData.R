@@ -102,6 +102,9 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff 
   }
   
   df <- df[,-ncol(df)]
+  if (nrow(df)==0){
+    return(NULL)
+  }
   values <- gather(df, dates, values, 2:ncol(df))
   values$dates <- as.Date(getDates(values$dates))
   values$country <- factor(values$country)
@@ -172,12 +175,14 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff 
 #' @param align logical If we should align by date of min number of cases/deaths/recovered
 #' or the rate of change (true)
 #' @export
-plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE, plotLim = NULL, align = FALSE){
+plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE,
+                           plotLim = NULL, align = FALSE){
   #filter out the requested country
   df <- allDf %>%
       filter(country %in% countryPlot)
   countries <- as.character(df$country)
-  df$country <- factor(countries)
+  #df$country <- factor(countries)
+  df$country <- as.character(df$country)
   sp <- split(df, df$type)
   for (i in 1:length(sp)){
     d <- sp[[i]]
@@ -188,7 +193,12 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALS
       thisCountry <- dd[1,1]
       dd <- dd[,-1]
       values <- gather(dd, dates, values, 1:ncol(dd)-1)
-      values$dates <- as.Date(getDates(values$dates))
+      if (nrow(values) > 0 ){
+        values$dates <- as.Date(getDates(values$dates))
+      } else {
+        values <- data.frame(dates = NA,
+                             values = NA)
+      }
       values$country <- thisCountry
       values$type <- thisType
       if (plotDiff){
@@ -214,7 +224,7 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALS
     geom_line(aes(color = type)) +
     labs(x = "Date",
          y = "#",
-         title = toupper(paste(countryPlot, collapse = ', '))) +
+         title = toupper(paste(countryPlot, collapse = ' - '))) +
     theme_minimal() +
   facet_grid(rows = vars(country))
   
