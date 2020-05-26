@@ -14,6 +14,9 @@ refreshData <- function(){
   cases <- getData(rootData, 'confirmed', 'cases')
   deaths <- getData(rootData, 'deaths', 'deaths')
   recovered <- getData(rootData, 'recovered', 'recovered')
+  
+  allData <- rbind(cases, deaths, recovered)
+  
   return(allData)
 }
 
