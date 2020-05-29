@@ -11,3 +11,4 @@ covid19Visualizer*.tgz
 JHUData-master.zip
 COVID-19-master/
 *.Rproj
+vignette/*.html

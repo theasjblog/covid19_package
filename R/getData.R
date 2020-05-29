@@ -11,6 +11,7 @@ refreshData <- function(){
   rootData <- here::here('COVID-19-master',
                          'csse_covid_19_data',
                          'csse_covid_19_time_series')
+  
   cases <- getData(rootData, 'confirmed', 'cases')
   deaths <- getData(rootData, 'deaths', 'deaths')
   recovered <- getData(rootData, 'recovered', 'recovered')
@@ -30,30 +31,32 @@ getData <- function(rootData, fileName, typeIs){
                             fileName,
                             '_global.csv')
   )
-  dfOR <- read.csv2(fullFile, sep = ',')
-  df <- dfOR
-  for (i in 1:nrow(df)){
-    if (df$Province.State[i] != ''){
-      df$country[i] <- paste0(df$Country.Region[i], ', ',
-                           df$Province.State[i])
-    } else {
-      df$country[i] <- as.character(df$Country.Region[i])
+  df <- read.csv2(fullFile, sep = ',')
+  df$Province.State <- as.character(df$Province.State)
+  df$Country.Region <- as.character(df$Country.Region)
+  df$Province.State[df$Province.State==''] <- df$Country.Region[df$Province.State=='']
+  
+  sp <- split(df, df$Country.Region)
+  
+  sp <- lapply(sp, function(d){
+    if (!unique(d$Country.Region) %in% d$Province.State){
+      tmpDf <- aggregate(cbind(d[,seq(5,ncol(d))]),
+                         by=list(Country.Region=d$Country.Region),
+                         FUN=sum)
+      tmpDf$Province.State <- tmpDf$Country.Region
+      tmpDf$Lat <- NA
+      tmpDf$Long <- NA
+      d <- rbind(d, tmpDf)
     }
-    
-    
-  }
-  df <- df[, seq(5, ncol(df))]
+    return(d)
+  })
   
-  df_aggregate <- aggregate(cbind(dfOR[,seq(5,ncol(dfOR))]),
-                            by=list(country=dfOR$Country.Region),
-                            FUN=sum)
-  df_aggregate$country <- as.character(df_aggregate$country)
-  
-  df <- rbind.data.frame(df_aggregate, df)
+  df <- do.call(rbind, sp)
+  df$country <- paste0(df$Country.Region, ', ', df$Province.State)
+  df$country[df$Country.Region == df$Province.State] <- df$Country.Region[df$Country.Region == df$Province.State]
   
   df$type <- typeIs
   
-  df <- df[!duplicated(df),]
   return(df)
 }
 
@@ -83,7 +86,8 @@ getDates <- function(jhuDates){
 #' @param align logical If we should align by date of min number of cases/deaths/recovered
 #' or the rate of change (true)
 #' @export
-doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff = FALSE, plotLim = NULL, align = FALSE){
+doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
+                   plotDiff = FALSE, plotLim = NULL, align = FALSE){
   if(!typePlot %in% c('cases', 'deaths', 'recovered')){
     stop('Invalid "type"')
   }
@@ -105,8 +109,19 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff 
   if (nrow(df)==0){
     return(NULL)
   }
-  values <- gather(df, dates, values, 2:ncol(df))
+  
+  values <- data.frame(dates = rep(colnames(df)[seq(5,ncol(df)-1)],
+                                   nrow(df)))
+                                 
+  values$country <- rep(df$country, each=ncol(df)-5)
+  res <- NULL
+  for (i in 1:nrow(df)){
+    res <- c(res,df[i, seq(5, ncol(df)-1)])
+  }
+  values$values <- as.numeric(res)
+  
   values$dates <- as.Date(getDates(values$dates))
+  
   values$country <- factor(values$country)
   if(plotDiff){
     sp <- split(values, values$country)
@@ -176,34 +191,32 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear', plotDiff 
 #' or the rate of change (true)
 #' @export
 plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE,
-                           plotLim = NULL, align = FALSE){
+                            plotLim = NULL, align = FALSE){
   #filter out the requested country
   df <- allDf %>%
-      filter(country %in% countryPlot)
+    filter(country %in% countryPlot)
   countries <- as.character(df$country)
-  #df$country <- factor(countries)
   df$country <- as.character(df$country)
   sp <- split(df, df$type)
   for (i in 1:length(sp)){
     d <- sp[[i]]
     thisType <- names(sp)[i]
+    print(thisType)
     sp1 <- split(d, d$country)
     for (ii in 1:length(sp1)){
       dd <- sp1[[ii]]
-      thisCountry <- dd[1,1]
-      dd <- dd[,-1]
-      values <- gather(dd, dates, values, 1:ncol(dd)-1)
-      if (nrow(values) > 0 ){
-        values$dates <- as.Date(getDates(values$dates))
-      } else {
-        values <- data.frame(dates = NA,
-                             values = NA)
+      thisCountry <- unique(dd$country)
+      values <- data.frame(dates = rep(colnames(dd)[seq(5,ncol(dd)-2)],
+                                       nrow(dd)))
+      
+      values$country <- rep(dd$country, each=ncol(dd)-6)
+      res <- NULL
+      for (iii in 1:nrow(dd)){
+        res <- c(res,dd[iii, seq(5, ncol(dd)-2)])
       }
-      values$country <- thisCountry
+      values$values <- as.numeric(res)
+      values$dates <- as.Date(getDates(values$dates))
       values$type <- thisType
-      if (plotDiff){
-        values$values <- c(0, diff(values$values))
-      }
       sp1[[ii]] <- values
     }
     sp[[i]] <- bind_rows(sp1)
@@ -226,7 +239,7 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALS
          y = "#",
          title = toupper(paste(countryPlot, collapse = ' - '))) +
     theme_minimal() +
-  facet_grid(rows = vars(country))
+    facet_grid(rows = vars(country))
   
   return(p)
 }
@@ -239,7 +252,7 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALS
 getSummaryTable <- function(df){
   res <- data.frame(country = df$country,
                     type = df$type,
-                    total = df[, ncol(df)-1])
+                    total = df[, ncol(df)-2])
   return(res)
 }
 
