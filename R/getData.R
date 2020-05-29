@@ -201,7 +201,6 @@ plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALS
   for (i in 1:length(sp)){
     d <- sp[[i]]
     thisType <- names(sp)[i]
-    print(thisType)
     sp1 <- split(d, d$country)
     for (ii in 1:length(sp1)){
       dd <- sp1[[ii]]
