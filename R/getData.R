@@ -263,6 +263,7 @@ getSummaryTable <- function(df){
 #' @param rawData (dataframe): the data obtaind from refresData()
 #' @param normalizeByPopulation (logical): if TRUE, divide the number of cases by the
 #' country population
+#' @param removeCountries (character): countries to remove
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
 #' @param chosenDay (numeric): the day to plot
@@ -271,6 +272,7 @@ getSummaryTable <- function(df){
 #' @return data frame of cases, deaths and recovered
 getMapData <- function(rawData, normalizeByPopulation = FALSE,
                        filterByCountry = NULL,
+                       removeCountries = NULL,
                        chosenDay = NULL, showTrend = FALSE){
   world <- ne_countries(scale = "medium", returnclass = "sf")
   
@@ -283,6 +285,13 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
                                                     origin = 'country.name',
                                                     destination = 'iso3c'))
     world <- world[world$gu_a3 %in% chosenCountries,]
+    
+  }
+  if(!is.null(removeCountries)){
+    chosenCountries <- suppressWarnings(countrycode(sourcevar = removeCountries,
+                                                    origin = 'country.name',
+                                                    destination = 'iso3c'))
+    world <- world[!world$gu_a3 %in% chosenCountries,]
   }
   if(!is.null(chosenDay)){
     idxChosenDay <- chosenDay+4
@@ -328,6 +337,7 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
 #' country population
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
+#' @param removeCountries (character): countries to remove
 #' @param chosenDay (numeric): the day to plot
 #' @showTrend (logical): colour the map by the variation of the last 5 days vs the previous
 #' 5 days
@@ -335,9 +345,10 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
 #' @export
 doMap <- function(rawData, normalizeByPopulation = FALSE,
                   filterByCountry = NULL,
+                  removeCountries = NULL,
                   chosenDay = NULL, showTrend = FALSE){
   world <- getMapData(rawData, normalizeByPopulation, filterByCountry,
-                      chosenDay, showTrend)
+                      removeCountries, chosenDay, showTrend)
   if(is.null(chosenDay)){
     chosenDay <- ncol(rawData)-6
   }
