@@ -76,6 +76,21 @@ getDates <- function(jhuDates){
   }
   return(dates)
 }
+
+#' @import zoo
+#' @title smoothValues
+#' @description smooth time series
+#' @param myVal (numeric vectro): the numbers to smooth
+#' @return A numeric vector
+smoothValues <- function(myVal){
+  smoothed <- zoo::rollmean(myVal,21)
+  meanSlope <- mean(diff(smoothed[seq(length(smoothed)-10,length(smoothed))]))
+  smoothed <- c(rep(0, 10),
+                smoothed,
+                seq(smoothed[length(smoothed)]+meanSlope,
+                    smoothed[length(smoothed)]+meanSlope*10, meanSlope))
+  return(smoothed)
+}
 #' @import dplyr
 #' @import tidyr
 #' @import ggplot2
@@ -132,6 +147,7 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
     for(i in 1:length(sp)){
       d <- sp[[i]]
       d$values <- c(0, diff(d$values))
+      d$values <- smoothValues(d$values)
       sp[[i]] <- d
     }
     values <- bind_rows(sp)
@@ -267,7 +283,7 @@ getSummaryTable <- function(df){
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
 #' @param chosenDay (numeric): the day to plot
-#' @showTrend (logical): colour the map by the variation of the last 5 days vs the previous
+#' @param showTrend (logical): colour the map by the variation of the last 5 days vs the previous
 #' 5 days
 #' @return data frame of cases, deaths and recovered
 getMapData <- function(rawData, normalizeByPopulation = FALSE,
@@ -300,6 +316,7 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
   }
   world$cases <- NA
   countries <- unique(rawData$Country.Region)
+  rawData$Province.State <- gsub('\\*', '', rawData$Province.State)
   for (i in 1:length(countries)){
     countries[i] <- gsub('\\*', '', countries[i])
     idxCC <- which(rawData$Province.State == countries[i])[1]
@@ -309,11 +326,10 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
     idx <- which(world$gu_a3 == cCode)
     if (length(idx) == 1){
       if(showTrend){
-        lastFive <- mean(diff(as.numeric(rawData[idxCC, seq(idxChosenDay-5, idxChosenDay)])),
+        smoothData <- smoothValues(diff(as.numeric(rawData[idxCC, seq(5,idxChosenDay)])))
+        lastTen <- mean(diff(smoothData[seq(idxChosenDay-10, idxChosenDay)]),
                          na.rm = TRUE)
-        previousFive <- mean(diff(as.numeric(rawData[idxCC, seq(idxChosenDay-11, idxChosenDay-6)])),
-                             na.rm = TRUE)
-        world$cases[idx] <- lastFive - previousFive
+        world$cases[idx] <- lastTen
       } else {
         world$cases[idx] <- rawData[idxCC, idxChosenDay]
       }
@@ -339,7 +355,7 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
 #' countries are included
 #' @param removeCountries (character): countries to remove
 #' @param chosenDay (numeric): the day to plot
-#' @showTrend (logical): colour the map by the variation of the last 5 days vs the previous
+#' @param showTrend (logical): colour the map by the variation of the last 5 days vs the previous
 #' 5 days
 #' @return a ggplot
 #' @export

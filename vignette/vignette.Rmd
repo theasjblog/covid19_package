@@ -85,20 +85,28 @@ plotAllMetrics(newData, c('Italy', 'China'), plotDiff = TRUE)
 ## Map plots
 ```{r mapPlots}
 # Simple plot
-doMap(newData, FALSE, NULL, NULL, FALSE)
+doMap(rawData = newData, normalizeByPopulation = FALSE, filterByCountry = NULL,
+      removeCountries = NULL, chosenDay = NULL, showTrend = FALSE)
 
 # A specific day
-doMap(newData, FALSE, NULL, 210, FALSE)
+doMap(rawData = newData, normalizeByPopulation = FALSE, filterByCountry = NULL,
+      removeCountries = NULL, chosenDay = 210, showTrend = FALSE)
 
 # Specific countries
-doMap(newData, FALSE, c('Italy', 'Spain'), 210, FALSE)
+doMap(rawData = newData, normalizeByPopulation = FALSE,
+      filterByCountry = c('Italy', 'Spain'),
+      removeCountries = NULL, chosenDay = 210, showTrend = FALSE)
 
 # Normalise by population
-doMap(newData, TRUE, c('Italy', 'Spain'), 210, FALSE)
+doMap(rawData = newData, normalizeByPopulation = TRUE,
+      filterByCountry = c('Italy', 'Spain'),
+      removeCountries = NULL, chosenDay = 210, showTrend = FALSE)
 
-# Show trend of past 5 days compared to the previous 5 days
+# Show mean trend of past 10 days
 # This will always set normalizeByPopulation = FALSE and chosenDay = NULL
-doMap(newData, FALSE, c('Italy', 'Spain'), NULL, TRUE)
+doMap(rawData = newData, normalizeByPopulation = FALSE,
+      filterByCountry = c('Italy', 'Spain'),
+      removeCountries = NULL, chosenDay = NULL, showTrend = TRUE)
 ```
 
 ## Summary table

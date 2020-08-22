@@ -8,7 +8,9 @@ doMap(
   rawData,
   normalizeByPopulation = FALSE,
   filterByCountry = NULL,
-  chosenDay = NULL
+  removeCountries = NULL,
+  chosenDay = NULL,
+  showTrend = FALSE
 )
 }
 \arguments{
@@ -20,7 +22,12 @@ country population}
 \item{filterByCountry}{(character): The countries to plot in the map. If NULL all
 countries are included}
 
+\item{removeCountries}{(character): countries to remove}
+
 \item{chosenDay}{(numeric): the day to plot}
+
+\item{showTrend}{(logical): colour the map by the variation of the last 5 days vs the previous
+5 days}
 }
 \value{
 a ggplot
