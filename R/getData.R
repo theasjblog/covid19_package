@@ -327,8 +327,12 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
     if (length(idx) == 1){
       if(showTrend){
         smoothData <- smoothValues(diff(as.numeric(rawData[idxCC, seq(5,idxChosenDay)])))
-        lastTen <- mean(diff(smoothData[seq(idxChosenDay-10, idxChosenDay)]),
+        lastTen <- mean(smoothData[seq(idxChosenDay-10, idxChosenDay)],
                          na.rm = TRUE)
+        if(mean(diff(smoothData[seq(idxChosenDay-10, idxChosenDay)]),
+                na.rm = TRUE)<0)
+          lastTen <- lastTen*-1
+        
         world$cases[idx] <- lastTen
       } else {
         world$cases[idx] <- rawData[idxCC, idxChosenDay]
