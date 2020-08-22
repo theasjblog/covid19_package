@@ -1,4 +1,8 @@
 #' @import here
+#' @import rnaturalearth
+#' @import rnaturalearthdata
+#' @import countrycode
+#' @import rgeos
 
 #' @title refreshData
 #' @description refresh data from https://github.com/CSSEGISandData/COVID-19.git
@@ -157,9 +161,7 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
   }
   
   if (!is.null(plotLim)){
-    #assume they are between 0 an 100, so need to adapt to date or values
     values$dateAsNum <- as.numeric(values$dates)-min(as.numeric(values$dates))
-    values$dateAsNum <- values$dateAsNum*100/max(values$dateAsNum)
     values <- values %>%
       filter(dateAsNum >= plotLim[1])
     values <- values %>%
@@ -253,6 +255,113 @@ getSummaryTable <- function(df){
                     type = df$type,
                     total = df[, ncol(df)-2])
   return(res)
+}
+
+
+#' @title getMapData
+#' @description get the data to plot on a map
+#' @param rawData (dataframe): the data obtaind from refresData()
+#' @param normalizeByPopulation (logical): if TRUE, divide the number of cases by the
+#' country population
+#' @param filterByCountry (character): The countries to plot in the map. If NULL all
+#' countries are included
+#' @param chosenDay (numeric): the day to plot
+#' @showTrend (logical): colour the map by the variation of the last 5 days vs the previous
+#' 5 days
+#' @return data frame of cases, deaths and recovered
+getMapData <- function(rawData, normalizeByPopulation = FALSE,
+                       filterByCountry = NULL,
+                       chosenDay = NULL, showTrend = FALSE){
+  world <- ne_countries(scale = "medium", returnclass = "sf")
+  
+  if(showTrend){
+    chosenDay <- NULL
+    normalizeByPopulation <- FALSE
+  }
+  if(!is.null(filterByCountry)){
+    chosenCountries <- suppressWarnings(countrycode(sourcevar = filterByCountry,
+                                                    origin = 'country.name',
+                                                    destination = 'iso3c'))
+    world <- world[world$gu_a3 %in% chosenCountries,]
+  }
+  if(!is.null(chosenDay)){
+    idxChosenDay <- chosenDay+4
+  } else {
+    idxChosenDay <- ncol(rawData)-2
+  }
+  world$cases <- NA
+  countries <- unique(rawData$Country.Region)
+  for (i in 1:length(countries)){
+    countries[i] <- gsub('\\*', '', countries[i])
+    idxCC <- which(rawData$Province.State == countries[i])[1]
+    cCode <- suppressWarnings(countrycode(sourcevar = countries[i],
+                                          origin = 'country.name',
+                                          destination = 'iso3c'))
+    idx <- which(world$gu_a3 == cCode)
+    if (length(idx) == 1){
+      if(showTrend){
+        lastFive <- mean(diff(as.numeric(rawData[idxCC, seq(idxChosenDay-5, idxChosenDay)])),
+                         na.rm = TRUE)
+        previousFive <- mean(diff(as.numeric(rawData[idxCC, seq(idxChosenDay-11, idxChosenDay-6)])),
+                             na.rm = TRUE)
+        world$cases[idx] <- lastFive - previousFive
+      } else {
+        world$cases[idx] <- rawData[idxCC, idxChosenDay]
+      }
+    }
+  }
+  
+  if (normalizeByPopulation){
+    world$cases <- suppressWarnings(world$cases/world$pop_est)
+  }
+  idx <- which(!is.na(world$cases))
+  world <- world[idx, ]
+  
+  return(world)
+  
+}
+
+#' @title doData
+#' @description plot on a map
+#' @param rawData (dataframe): the data obtaind from refresData()
+#' @param normalizeByPopulation (logical): if TRUE, divide the number of cases by the
+#' country population
+#' @param filterByCountry (character): The countries to plot in the map. If NULL all
+#' countries are included
+#' @param chosenDay (numeric): the day to plot
+#' @showTrend (logical): colour the map by the variation of the last 5 days vs the previous
+#' 5 days
+#' @return a ggplot
+#' @export
+doMap <- function(rawData, normalizeByPopulation = FALSE,
+                  filterByCountry = NULL,
+                  chosenDay = NULL, showTrend = FALSE){
+  world <- getMapData(rawData, normalizeByPopulation, filterByCountry,
+                      chosenDay, showTrend)
+  if(is.null(chosenDay)){
+    chosenDay <- ncol(rawData)-6
+  }
+  dateChar <- as.Date(getDates(colnames(rawData[seq(5,ncol(rawData)-2)])))
+  dateChar <- dateChar[chosenDay]
+  if (normalizeByPopulation){
+    plotTitle <- paste0('Cases normalized by population \n Day: ', dateChar)
+  } else {
+    plotTitle <- paste0('Cases \n Day: ', dateChar)
+  }
+  if (showTrend){
+    plotTitle <- 'Average daily trend'
+  }
+  g <- ggplot(data = world) +
+    geom_sf(aes(fill = cases)) +
+    scale_fill_viridis_c(option = "plasma", trans = "sqrt")+
+    ggtitle(plotTitle) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = 'aliceblue'),
+          axis.text.x = element_blank(), axis.text.y = element_blank(),
+          axis.ticks = element_blank()) +
+    labs(fill = "")
+  return(g)
 }
 
 
