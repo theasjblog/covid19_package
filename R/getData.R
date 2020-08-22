@@ -353,7 +353,7 @@ doMap <- function(rawData, normalizeByPopulation = FALSE,
   }
   g <- ggplot(data = world) +
     geom_sf(aes(fill = cases)) +
-    scale_fill_viridis_c(option = "plasma", trans = "sqrt")+
+    scale_fill_viridis_c(option = "plasma")+
     ggtitle(plotTitle) +
     theme_bw() +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
