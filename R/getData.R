@@ -131,7 +131,7 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
   
   values <- data.frame(dates = rep(colnames(df)[seq(5,ncol(df)-1)],
                                    nrow(df)))
-                                 
+  
   values$country <- rep(df$country, each=ncol(df)-5)
   res <- NULL
   for (i in 1:nrow(df)){
@@ -184,8 +184,8 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
       filter(dateAsNum <= plotLim[2])
     
   }
-
-    p <- ggplot(data = values, aes(x = dates,
+  
+  p <- ggplot(data = values, aes(x = dates,
                                  y = values,
                                  group = country)) +
     geom_line(aes(color = country)) +
@@ -209,7 +209,7 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
 #' or the rate of change (true)
 #' @export
 plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE,
-                            plotLim = NULL, align = FALSE){
+                           plotLim = NULL, align = FALSE){
   #filter out the requested country
   df <- allDf %>%
     filter(country %in% countryPlot)
@@ -328,25 +328,25 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
       if(showTrend){
         smoothData <- smoothValues(diff(as.numeric(rawData[idxCC, seq(5,idxChosenDay)])))
         lastTen <- mean(smoothData[seq(idxChosenDay-10, idxChosenDay)],
-                         na.rm = TRUE)
+                        na.rm = TRUE)
         meanVal <- mean(diff(smoothData[seq(idxChosenDay-10, idxChosenDay)]),
                         na.rm = TRUE)
         if(!is.na(meanVal)){
-          if(mean(diff(smoothData[seq(idxChosenDay-10, idxChosenDay)]),
-                  na.rm = TRUE)<0)
+          if(meanVal<0){
             lastTen <- lastTen*-1
-          
+          }
           world$cases[idx] <- lastTen
-        } else {
-          world$cases[idx] <- rawData[idxCC, idxChosenDay]
         }
-        }
+      } else {
+        world$cases[idx] <- rawData[idxCC, idxChosenDay]
+      }
     }
   }
   
   if (normalizeByPopulation){
     world$cases <- suppressWarnings(world$cases/world$pop_est)
   }
+  
   idx <- which(!is.na(world$cases))
   world <- world[idx, ]
   
@@ -401,4 +401,3 @@ doMap <- function(rawData, normalizeByPopulation = FALSE,
 
 
 
-       
