@@ -83,6 +83,8 @@ plotAllMetrics(newData, c('Italy', 'China'), plotDiff = TRUE)
 ```
 
 ## Map plots
+
+### General overview
 ```{r mapPlots}
 # Simple plot
 doMap(rawData = newData, normalizeByPopulation = FALSE, filterByCountry = NULL,
@@ -107,6 +109,18 @@ doMap(rawData = newData, normalizeByPopulation = TRUE,
 doMap(rawData = newData, normalizeByPopulation = FALSE,
       filterByCountry = c('Italy', 'Spain'),
       removeCountries = NULL, chosenDay = NULL, showTrend = TRUE)
+```
+
+### Quarantine countries
+
+UK impose qurantine for traveller coming from certain countries. One of the criteria used is that a countru should not have more than a total of 20 new cases every 100,000 inhabitants over the past 7 days. The following plots will show countries above or below such threshold.
+
+```{r mapQPlots}
+# plot heatmap of total number of cases every 100k subjects for the past 7 days
+doQMap(c('Italy', 'Spain'), categoricalPlot = FALSE)
+# plot categorical of total number of cases every 100k subjects for the past 7
+# red >= 20 , blue < 20
+doQMap(c('Italy', 'Spain'), categoricalPlot = TRUE)
 ```
 
 ## Summary table

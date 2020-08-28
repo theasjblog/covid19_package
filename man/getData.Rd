@@ -4,7 +4,7 @@
 \alias{getData}
 \title{getData}
 \usage{
-getData(rootData, fileName, typeIs)
+getData(rootData, fileName, typeIs, doSmoothing = TRUE)
 }
 \value{
 data frame of cases, deaths and recovered

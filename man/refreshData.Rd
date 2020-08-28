@@ -4,7 +4,7 @@
 \alias{refreshData}
 \title{refreshData}
 \usage{
-refreshData()
+refreshData(getNew = TRUE, doSmoothing = TRUE)
 }
 \value{
 data frame of cases, deaths and recovered

@@ -8,17 +8,20 @@
 #' @description refresh data from https://github.com/CSSEGISandData/COVID-19.git
 #' @return data frame of cases, deaths and recovered
 #' @export
-refreshData <- function(){
-  download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
-                , destfile = "JHUData-master.zip")
+refreshData <- function(getNew = TRUE, doSmoothing = TRUE){
+  if(getNew){
+    download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
+                  , destfile = "JHUData-master.zip")
+  }
+  
   unzip(zipfile = "JHUData-master.zip")
   rootData <- here::here('COVID-19-master',
                          'csse_covid_19_data',
                          'csse_covid_19_time_series')
   
-  cases <- getData(rootData, 'confirmed', 'cases')
-  deaths <- getData(rootData, 'deaths', 'deaths')
-  recovered <- getData(rootData, 'recovered', 'recovered')
+  cases <- getData(rootData, 'confirmed', 'cases', doSmoothing)
+  deaths <- getData(rootData, 'deaths', 'deaths', doSmoothing)
+  recovered <- getData(rootData, 'recovered', 'recovered', doSmoothing)
   
   allData <- rbind(cases, deaths, recovered)
   
@@ -29,13 +32,19 @@ refreshData <- function(){
 #' @description prep data by reading in thhe downloaded repo,
 #' joining coubtries with mopre than one area and aggregating
 #' @return data frame of cases, deaths and recovered
-getData <- function(rootData, fileName, typeIs){
+getData <- function(rootData, fileName, typeIs, doSmoothing = TRUE){
   fullFile <- paste0(rootData,
                      paste0('/time_series_covid19_',
                             fileName,
                             '_global.csv')
   )
   df <- read.csv2(fullFile, sep = ',')
+  if (doSmoothing){
+    for (i in 1:nrow(df)){
+      df[i,seq(5,ncol(df))] <- smoothValues(as.numeric(df[i,seq(5,ncol(df))]))
+    }
+  }
+  
   df$Province.State <- as.character(df$Province.State)
   df$Country.Region <- as.character(df$Country.Region)
   df$Province.State[df$Province.State==''] <- df$Country.Region[df$Province.State=='']
@@ -88,7 +97,7 @@ smoothValues <- function(myVal){
   smoothed <- c(rep(0, 10),
                 smoothed,
                 seq(smoothed[length(smoothed)]+meanSlope,
-                    smoothed[length(smoothed)]+meanSlope*10, meanSlope))
+                      smoothed[length(smoothed)]+meanSlope*10, length.out = 10))
   return(smoothed)
 }
 #' @import dplyr
@@ -147,7 +156,6 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
     for(i in 1:length(sp)){
       d <- sp[[i]]
       d$values <- c(0, diff(d$values))
-      d$values <- smoothValues(d$values)
       sp[[i]] <- d
     }
     values <- bind_rows(sp)
@@ -326,7 +334,7 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
     idx <- which(world$gu_a3 == cCode)
     if (length(idx) == 1){
       if(showTrend){
-        smoothData <- smoothValues(diff(as.numeric(rawData[idxCC, seq(5,idxChosenDay)])))
+        smoothData <- diff(as.numeric(rawData[idxCC, seq(5,idxChosenDay)]))
         lastTen <- mean(smoothData[seq(idxChosenDay-10, idxChosenDay)],
                         na.rm = TRUE)
         meanVal <- mean(diff(smoothData[seq(idxChosenDay-10, idxChosenDay)]),
@@ -400,4 +408,83 @@ doMap <- function(rawData, normalizeByPopulation = FALSE,
 }
 
 
+#' @title doQMap
+#' @description plot on a map the increase in number of cases over 100k subjects
+#' over the past 7 days
+#' @param plotCountry (character): The countries to plot in the map. If NULL all
+#' countries are included
+#' @param categoricalPlot (logical): colour the countries in red if they had more than
+#' 20 cases, blue otherwise
+#' @return a ggplot
+#' @export
+doQMap <- function(plotCountry = NULL, categoricalPlot = FALSE){
+  
+  newData <- refreshData(getNew = FALSE, doSmoothing = FALSE)
+  newData <- newData %>% filter(Province.State == Country.Region & type == 'cases')
+  if (!is.null(plotCountry)){
+    newData <- newData %>% filter(country %in% plotCountry)
+  }
+  
+  world <- ne_countries(scale = "medium", returnclass = "sf")
+  
+  
+  for (i in 1:nrow(newData)){
+    newData$increase[i] <- suppressWarnings(sum(abs(diff(as.numeric(
+      newData[i, seq(ncol(newData)-9, ncol(newData)-2)]))), na.rm = TRUE))
+  }
+  
+  newData$countryCode <- suppressWarnings(countrycode(sourcevar = newData$country,
+                                                      origin = 'country.name',
+                                                      destination = 'iso3c'))
+  world <- world[world$gu_a3 %in% newData$countryCode,]
+  for (i in 1:nrow(world)){
+    idx <- which(newData$countryCode == world$gu_a3[i])
+    world$increase[i] <- round(newData$increase[idx]*100e3/world$pop_est[i])
+  }
+  
+  
+  g <- plotQMap(world, categoricalPlot)
+  
+  return(g)
+  
+}
 
+
+#' @title plotQMap
+#' @description plot on a map the increase in number of cases over 100k subjects
+#' over the past 7 days
+#' @param plotCountry (character): The countries to plot in the map. If NULL all
+#' countries are included
+#' @param categoricalPlot (logical): colour the countries in red if they had more than
+#' 20 cases, blue otherwise
+#' @return a ggplot
+plotQMap <- function(world, categoricalPlot){
+  if (categoricalPlot){
+    world$increase[world$increase>=20] <- 30
+    world$increase[world$increase<20] <- 10
+  }
+  
+  plotTitle <- 'Number of cases every 100K subjects \nover the past 7 days'
+  g <- ggplot(data = world) +
+    geom_sf(aes(fill = increase)) +
+    ggtitle(plotTitle) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_rect(fill = 'aliceblue'),
+          axis.text.x = element_blank(), axis.text.y = element_blank(),
+          axis.ticks = element_blank()) +
+    labs(fill = "")
+  
+  if(categoricalPlot){
+    g <- g + 
+      scale_fill_gradient2(low = "blue",
+                           mid = "white",
+                           high = "red",
+                           midpoint = 20)+
+      theme(legend.position = "none")
+  } else {
+    g <- g + scale_fill_viridis_c(option = "plasma")
+  }
+  
+  return(g)
+}
