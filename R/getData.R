@@ -411,15 +411,16 @@ doMap <- function(rawData, normalizeByPopulation = FALSE,
 #' @title doQMap
 #' @description plot on a map the increase in number of cases over 100k subjects
 #' over the past 7 days
+#' @param newData (data.frame). A dataframe of data from JHU obtained with
+#' refreshData(doSmoothing = FALSE)
 #' @param plotCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
 #' @param categoricalPlot (logical): colour the countries in red if they had more than
 #' 20 cases, blue otherwise
 #' @return a ggplot
 #' @export
-doQMap <- function(plotCountry = NULL, categoricalPlot = FALSE){
+doQMap <- function(newData, plotCountry = NULL, categoricalPlot = FALSE){
   
-  newData <- refreshData(getNew = FALSE, doSmoothing = FALSE)
   newData <- newData %>% filter(Province.State == Country.Region & type == 'cases')
   if (!is.null(plotCountry)){
     newData <- newData %>% filter(country %in% plotCountry)

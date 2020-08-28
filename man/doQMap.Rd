@@ -4,9 +4,12 @@
 \alias{doQMap}
 \title{doQMap}
 \usage{
-doQMap(plotCountry = NULL, categoricalPlot = FALSE)
+doQMap(newData, plotCountry = NULL, categoricalPlot = FALSE)
 }
 \arguments{
+\item{newData}{(data.frame). A dataframe of data from JHU obtained with
+refreshData(doSmoothing = FALSE)}
+
 \item{plotCountry}{(character): The countries to plot in the map. If NULL all
 countries are included}
 
