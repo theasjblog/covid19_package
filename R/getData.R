@@ -8,12 +8,17 @@
 #' @description refresh data from https://github.com/CSSEGISandData/COVID-19.git
 #' @return data frame of cases, deaths and recovered
 #' @export
-refreshData <- function(getNew = TRUE, doSmoothing = TRUE){
-  if(getNew){
+refreshData <- function(doSmoothing = TRUE){
+  if (file.exists("JHUData-master.zip")){
+    if (as.Date(file.info("JHUData-master.zip")$atime) != Sys.Date()){
+      download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
+                    , destfile = "JHUData-master.zip")
+    }
+  } else {
     download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
                   , destfile = "JHUData-master.zip")
   }
-  
+
   unzip(zipfile = "JHUData-master.zip")
   rootData <- here::here('COVID-19-master',
                          'csse_covid_19_data',

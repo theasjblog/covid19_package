@@ -117,10 +117,10 @@ UK impose qurantine for traveller coming from certain countries. One of the crit
 
 ```{r mapQPlots}
 # plot heatmap of total number of cases every 100k subjects for the past 7 days
-doQMap(refreshData(FALSE, FALSE), c('Italy', 'Spain'), categoricalPlot = FALSE)
+doQMap(refreshData(FALSE), c('Italy', 'Spain'), categoricalPlot = FALSE)
 # plot categorical of total number of cases every 100k subjects for the past 7
 # red >= 20 , blue < 20
-doQMap(refreshData(FALSE, FALSE), c('Italy', 'Spain'), categoricalPlot = TRUE)
+doQMap(refreshData(FALSE), c('Italy', 'Spain'), categoricalPlot = TRUE)
 ```
 
 ## Summary table
