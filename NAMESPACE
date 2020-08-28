@@ -2,6 +2,7 @@
 
 export(doMap)
 export(doPlot)
+export(doQMap)
 export(getSummaryTable)
 export(plotAllMetrics)
 export(refreshData)
