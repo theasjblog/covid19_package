@@ -7,11 +7,11 @@
 plotQMap(world, categoricalPlot)
 }
 \arguments{
+\item{world}{(data.frame): The countries with population data, from the package rnaturalearthdata
+countries are included}
+
 \item{categoricalPlot}{(logical): colour the countries in red if they had more than
 20 cases, blue otherwise}
-
-\item{plotCountry}{(character): The countries to plot in the map. If NULL all
-countries are included}
 }
 \value{
 a ggplot

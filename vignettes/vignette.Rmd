@@ -5,6 +5,7 @@ date: "3/29/2020"
 output: html_document
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library('covid19Visualizer')
@@ -22,7 +23,7 @@ Data is provided by Johns Hopkins University and is obtained from <https://githu
 New data is obtained with (a network connection is required):
 
 ```{r getNewData}
-newData <- refreshData()
+newData <- getAllData()
 ```
 
 ## Plot a single metric
@@ -33,53 +34,53 @@ Each metric can be plotted for selected countries using:
 
 ```{r doPlot}
 # cases
-doPlot(newData, 'cases', c('Italy', 'China'))
+doPlot(slot(newData, 'JHUData_raw'), 'cases', c('Italy', 'China'))
 
 # deaths
-doPlot(newData, 'deaths', c('Italy', 'China'))
+doPlot(slot(newData, 'JHUData_raw'), 'deaths', c('Italy', 'China'))
 
 # recovered
-doPlot(newData, 'recovered', c('Italy', 'China'))
+doPlot(slot(newData, 'JHUData_raw'), 'recovered', c('Italy', 'China'))
 ```
 
 Each plot can be plotted in log10 scale:
 ```{r doPlotLog}
 # cases
-doPlot(newData, 'cases', c('Italy', 'China'), scale = 'log')
+doPlot(slot(newData, 'JHUData_raw'), 'cases', c('Italy', 'China'), scale = 'log')
 
 # deaths
-doPlot(newData, 'deaths', c('Italy', 'China'), scale = 'log')
+doPlot(slot(newData, 'JHUData_raw'), 'deaths', c('Italy', 'China'), scale = 'log')
 
 # recovered
-doPlot(newData, 'recovered', c('Italy', 'China'), scale = 'log')
+doPlot(slot(newData, 'JHUData_raw'), 'recovered', c('Italy', 'China'), scale = 'log')
 ```
 
 We can also plot the variation, rather than the raw numbers:
 ```{r doPlotRate}
 # cases
-doPlot(newData, 'cases', c('Italy', 'China'), plotDiff = TRUE)
+doPlot(slot(newData, 'JHUData_diffSmooth'), 'cases', c('Italy', 'China'))
 
 # deaths
-doPlot(newData, 'deaths', c('Italy', 'China'), plotDiff = TRUE)
+doPlot(slot(newData, 'JHUData_diffSmooth'), 'deaths', c('Italy', 'China'))
 
 # recovered
-doPlot(newData, 'recovered', c('Italy', 'China'), plotDiff = TRUE)
+doPlot(slot(newData, 'JHUData_diffSmooth'), 'recovered', c('Italy', 'China'))
 ```
 
 ## Plot all metrics for selected countires
 
 ```{r plotAllMetrics}
 # linear
-plotAllMetrics(newData, c('Italy', 'China'))
+plotAllMetrics(slot(newData, 'JHUData_smooth'), c('Italy', 'China'))
 
 # log
-plotAllMetrics(newData, c('Italy', 'China'), scale = 'log')
+plotAllMetrics(slot(newData, 'JHUData_smooth'), c('Italy', 'China'), scale = 'log')
 ```
 
 And the rate:
 
 ```{r plotAllMetricsRate}
-plotAllMetrics(newData, c('Italy', 'China'), plotDiff = TRUE)
+plotAllMetrics(slot(newData, 'JHUData_diffSmooth'), c('Italy', 'China'))
 ```
 
 ## Map plots
@@ -87,26 +88,26 @@ plotAllMetrics(newData, c('Italy', 'China'), plotDiff = TRUE)
 ### General overview
 ```{r mapPlots}
 # Simple plot
-doMap(rawData = newData, normalizeByPopulation = FALSE, filterByCountry = NULL,
+doMap(newData, normalizeByPopulation = FALSE, filterByCountry = NULL,
       removeCountries = NULL, chosenDay = NULL, showTrend = FALSE)
 
 # A specific day
-doMap(rawData = newData, normalizeByPopulation = FALSE, filterByCountry = NULL,
+doMap(newData, normalizeByPopulation = FALSE, filterByCountry = NULL,
       removeCountries = NULL, chosenDay = 210, showTrend = FALSE)
 
 # Specific countries
-doMap(rawData = newData, normalizeByPopulation = FALSE,
+doMap(newData, normalizeByPopulation = FALSE,
       filterByCountry = c('Italy', 'Spain'),
       removeCountries = NULL, chosenDay = 210, showTrend = FALSE)
 
 # Normalise by population
-doMap(rawData = newData, normalizeByPopulation = TRUE,
+doMap(newData, normalizeByPopulation = TRUE,
       filterByCountry = c('Italy', 'Spain'),
       removeCountries = NULL, chosenDay = 210, showTrend = FALSE)
 
 # Show mean trend of past 10 days
 # This will always set normalizeByPopulation = FALSE and chosenDay = NULL
-doMap(rawData = newData, normalizeByPopulation = FALSE,
+doMap(newData, normalizeByPopulation = FALSE,
       filterByCountry = c('Italy', 'Spain'),
       removeCountries = NULL, chosenDay = NULL, showTrend = TRUE)
 ```
@@ -117,15 +118,15 @@ UK impose qurantine for traveller coming from certain countries. One of the crit
 
 ```{r mapQPlots}
 # plot heatmap of total number of cases every 100k subjects for the past 7 days
-doQMap(refreshData(FALSE), c('Italy', 'Spain'), categoricalPlot = FALSE)
+doQMap(newData, c('Italy', 'Spain'), categoricalPlot = FALSE)
 # plot categorical of total number of cases every 100k subjects for the past 7
 # red >= 20 , blue < 20
-doQMap(refreshData(FALSE), c('Italy', 'Spain'), categoricalPlot = TRUE)
+doQMap(newData, c('Italy', 'Spain'), categoricalPlot = TRUE)
 ```
 
 ## Summary table
 
 ```{r summaryTable}
-kable(getSummaryTable(newData))
+kable(getSummaryTable(slot(newData, 'JHUData_raw')))
 ```
 

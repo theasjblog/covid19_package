@@ -9,26 +9,23 @@ doPlot(
   typePlot,
   countryPlot = NULL,
   scale = "linear",
-  plotDiff = FALSE,
   plotLim = NULL,
   align = FALSE
 )
 }
 \arguments{
+\item{df}{df of data from JHU}
+
 \item{typePlot}{cases, deaths or recovered}
 
 \item{countryPlot}{the country to plot}
 
 \item{scale}{if to plot in linear or log scale}
 
-\item{plotDiff}{logical if we should plot the raw number (false)}
-
 \item{plotLim}{Dates max an min limits for the plot}
 
 \item{align}{logical If we should align by date of min number of cases/deaths/recovered
 or the rate of change (true)}
-
-\item{data}{df of data from JHU}
 }
 \description{
 plot data for a single country

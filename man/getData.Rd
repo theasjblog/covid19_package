@@ -4,12 +4,19 @@
 \alias{getData}
 \title{getData}
 \usage{
-getData(rootData, fileName, typeIs, doSmoothing = TRUE)
+getData(rootData, fileName, typeIs)
+}
+\arguments{
+\item{rootData}{(character) the raw data from JHU}
+
+\item{fileName}{(character) the name of the file with the raw data}
+
+\item{typeIs}{(character) one of "cases", "deaths", "recovered"}
 }
 \value{
 data frame of cases, deaths and recovered
 }
 \description{
 prep data by reading in thhe downloaded repo,
-joining coubtries with mopre than one area and aggregating
+joining coubtries with more than one area and aggregating
 }
