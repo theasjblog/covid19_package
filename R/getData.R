@@ -252,13 +252,10 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
 #' @param allDf list of all Df metrics
 #' @param countryPlot character of a country
 #' @param scale character for plot in linear or log scale
-#' @param plotDiff logical if we should plot the raw number (false) (NOT IMPLEMETED YET)
-#' @param plotLim Dates max an min limits for the plot (NOT IMPLEMETED YET)
 #' @param align logical If we should align by date of min number of cases/deaths/recovered
 #' or the rate of change (true)
 #' @export
-plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE,
-                           plotLim = NULL, align = FALSE){
+plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', align = FALSE){
   #filter out the requested country
   df <- allDf %>% filter(country %in% countryPlot)
   countries <- as.character(df$country)
