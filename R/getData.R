@@ -3,12 +3,46 @@
 #' @import rnaturalearthdata
 #' @import countrycode
 #' @import rgeos
+#' @import methods
+
+#' Data
+#' @slot JHUData_raw data.frame of settings
+#' @slot JHUData_smooth data.frame
+#' @slot JHUData_diffSmooth data.frame
+#' @slot demographic sf
+setClass('covidData',
+         representation(JHUData_raw = 'data.frame',
+                        JHUData_smooth = 'data.frame',
+                        JHUData_diffSmooth = 'data.frame',
+                        demographic = 'sf'),
+         prototype(JHUData_raw = NULL,
+                   JHUData_smooth = NULL,
+                   JHUData_diffSmooth = NULL,
+                   demographic = NULL))
+
+
+#' @title getAllData
+#' @description create S4 object with raw, smoothed and demographic data
+#' @return S4 of class covidData
+#' @export
+getAllData <- function(){
+  res <- new('covidData')
+  slot(res, 'JHUData_raw') <- refreshData()
+  slot(res, 'JHUData_smooth') <- smoothDf(slot(res, 'JHUData_raw'))
+  slot(res, 'JHUData_diffSmooth') <- slot(res, 'JHUData_raw')
+  for (i in 1:nrow(slot(res, 'JHUData_diffSmooth'))){
+    slot(res, 'JHUData_diffSmooth')[i,seq(5, ncol(slot(res, 'JHUData_diffSmooth'))-2)] <- 
+      c(0, diff(as.numeric(slot(res, 'JHUData_diffSmooth')[i,seq(5, ncol(slot(res, 'JHUData_diffSmooth'))-2)])))
+  }
+  slot(res, 'JHUData_diffSmooth') <- smoothDf(slot(res, 'JHUData_diffSmooth'))
+  slot(res, 'demographic') <- ne_countries(scale = "medium", returnclass = "sf")
+  return(res)
+}
 
 #' @title refreshData
 #' @description refresh data from https://github.com/CSSEGISandData/COVID-19.git
 #' @return data frame of cases, deaths and recovered
-#' @export
-refreshData <- function(doSmoothing = TRUE){
+refreshData <- function(){
   if (file.exists("JHUData-master.zip")){
     if (as.Date(file.info("JHUData-master.zip")$atime) != Sys.Date()){
       download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
@@ -24,31 +58,40 @@ refreshData <- function(doSmoothing = TRUE){
                          'csse_covid_19_data',
                          'csse_covid_19_time_series')
   
-  cases <- getData(rootData, 'confirmed', 'cases', doSmoothing)
-  deaths <- getData(rootData, 'deaths', 'deaths', doSmoothing)
-  recovered <- getData(rootData, 'recovered', 'recovered', doSmoothing)
+  cases <- getData(rootData, 'confirmed', 'cases')
+  deaths <- getData(rootData, 'deaths', 'deaths')
+  recovered <- getData(rootData, 'recovered', 'recovered')
   
   allData <- rbind(cases, deaths, recovered)
   
   return(allData)
 }
 
+
+#' @title smoothDf
+#' @description smooth a df with time series
+#' @param df (data.frame) a data frame woth rows of time series
+#' @return smoothed data frame
+smoothDf <- function(df){
+  for (i in 1:nrow(df)){
+    df[i,seq(5,ncol(df)-2)] <- smoothValues(as.numeric(df[i,seq(5,ncol(df)-2)]))
+  }
+  return(df)
+}
 #' @title getData
 #' @description prep data by reading in thhe downloaded repo,
-#' joining coubtries with mopre than one area and aggregating
+#' joining coubtries with more than one area and aggregating
+#' @param rootData (character) the raw data from JHU
+#' @param fileName (character) the name of the file with the raw data
+#' @param typeIs (character) one of "cases", "deaths", "recovered" 
 #' @return data frame of cases, deaths and recovered
-getData <- function(rootData, fileName, typeIs, doSmoothing = TRUE){
+getData <- function(rootData, fileName, typeIs){
   fullFile <- paste0(rootData,
                      paste0('/time_series_covid19_',
                             fileName,
                             '_global.csv')
   )
-  df <- read.csv2(fullFile, sep = ',')
-  if (doSmoothing){
-    for (i in 1:nrow(df)){
-      df[i,seq(5,ncol(df))] <- smoothValues(as.numeric(df[i,seq(5,ncol(df))]))
-    }
-  }
+  df <- read.csv(fullFile, sep = ',')
   
   df$Province.State <- as.character(df$Province.State)
   df$Country.Region <- as.character(df$Country.Region)
@@ -105,22 +148,22 @@ smoothValues <- function(myVal){
                       smoothed[length(smoothed)]+meanSlope*10, length.out = 10))
   return(smoothed)
 }
+
 #' @import dplyr
 #' @import tidyr
 #' @import ggplot2
 #' @title doPlot
 #' @description plot data for a single country
-#' @param data df of data from JHU
+#' @param df df of data from JHU
 #' @param typePlot cases, deaths or recovered
 #' @param countryPlot the country to plot
 #' @param scale if to plot in linear or log scale
-#' @param plotDiff logical if we should plot the raw number (false)
 #' @param plotLim Dates max an min limits for the plot
 #' @param align logical If we should align by date of min number of cases/deaths/recovered
 #' or the rate of change (true)
 #' @export
 doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
-                   plotDiff = FALSE, plotLim = NULL, align = FALSE){
+                   plotLim = NULL, align = FALSE){
   if(!typePlot %in% c('cases', 'deaths', 'recovered')){
     stop('Invalid "type"')
   }
@@ -132,7 +175,7 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
   df <- df %>% 
     filter(type == typePlot)
   
-  #filter out the requested country
+  #filter out the not requested country
   if (!is.null(countryPlot)){
     df <- df %>%
       filter(country %in% countryPlot)
@@ -142,6 +185,7 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
   if (nrow(df)==0){
     return(NULL)
   }
+  
   
   values <- data.frame(dates = rep(colnames(df)[seq(5,ncol(df)-1)],
                                    nrow(df)))
@@ -156,15 +200,7 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
   values$dates <- as.Date(getDates(values$dates))
   
   values$country <- factor(values$country)
-  if(plotDiff){
-    sp <- split(values, values$country)
-    for(i in 1:length(sp)){
-      d <- sp[[i]]
-      d$values <- c(0, diff(d$values))
-      sp[[i]] <- d
-    }
-    values <- bind_rows(sp)
-  }
+  
   
   xLabel <- "Date"
   if(align){
@@ -217,15 +253,14 @@ doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
 #' @param countryPlot character of a country
 #' @param scale character for plot in linear or log scale
 #' @param plotDiff logical if we should plot the raw number (false) (NOT IMPLEMETED YET)
-#' #' @param plotLim Dates max an min limits for the plot (NOT IMPLEMETED YET)
+#' @param plotLim Dates max an min limits for the plot (NOT IMPLEMETED YET)
 #' @param align logical If we should align by date of min number of cases/deaths/recovered
 #' or the rate of change (true)
 #' @export
 plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', plotDiff = FALSE,
                            plotLim = NULL, align = FALSE){
   #filter out the requested country
-  df <- allDf %>%
-    filter(country %in% countryPlot)
+  df <- allDf %>% filter(country %in% countryPlot)
   countries <- as.character(df$country)
   df$country <- as.character(df$country)
   sp <- split(df, df$type)
@@ -289,7 +324,7 @@ getSummaryTable <- function(df){
 
 #' @title getMapData
 #' @description get the data to plot on a map
-#' @param rawData (dataframe): the data obtaind from refresData()
+#' @param plotData (covidData): S4 object
 #' @param normalizeByPopulation (logical): if TRUE, divide the number of cases by the
 #' country population
 #' @param removeCountries (character): countries to remove
@@ -299,12 +334,12 @@ getSummaryTable <- function(df){
 #' @param showTrend (logical): colour the map by the variation of the last 5 days vs the previous
 #' 5 days
 #' @return data frame of cases, deaths and recovered
-getMapData <- function(rawData, normalizeByPopulation = FALSE,
+getMapData <- function(plotData, normalizeByPopulation = FALSE,
                        filterByCountry = NULL,
                        removeCountries = NULL,
                        chosenDay = NULL, showTrend = FALSE){
-  world <- ne_countries(scale = "medium", returnclass = "sf")
-  
+  world <- slot(plotData, 'demographic')
+  rawData <- slot(plotData, 'JHUData_diffSmooth')
   if(showTrend){
     chosenDay <- NULL
     normalizeByPopulation <- FALSE
@@ -339,16 +374,16 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
     idx <- which(world$gu_a3 == cCode)
     if (length(idx) == 1){
       if(showTrend){
-        smoothData <- diff(as.numeric(rawData[idxCC, seq(5,idxChosenDay)]))
-        lastTen <- mean(smoothData[seq(idxChosenDay-10, idxChosenDay)],
+        smoothData <- as.numeric(rawData[idxCC, seq(5,idxChosenDay)])
+        lastTen <- mean(diff(smoothData[seq(idxChosenDay-10, idxChosenDay-5)]),
                         na.rm = TRUE)
-        meanVal <- mean(diff(smoothData[seq(idxChosenDay-10, idxChosenDay)]),
-                        na.rm = TRUE)
+        meanVal <- round(mean(smoothData[seq(idxChosenDay-10, idxChosenDay)],
+                        na.rm = TRUE))
         if(!is.na(meanVal)){
-          if(meanVal<0){
-            lastTen <- lastTen*-1
+          if(lastTen<0){
+            meanVal <- meanVal*-1
           }
-          world$cases[idx] <- lastTen
+          world$cases[idx] <- meanVal
         }
       } else {
         world$cases[idx] <- rawData[idxCC, idxChosenDay]
@@ -369,7 +404,7 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
 
 #' @title doData
 #' @description plot on a map
-#' @param rawData (dataframe): the data obtaind from refresData()
+#' @param plotData (covidData): S4 object
 #' @param normalizeByPopulation (logical): if TRUE, divide the number of cases by the
 #' country population
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
@@ -380,12 +415,13 @@ getMapData <- function(rawData, normalizeByPopulation = FALSE,
 #' 5 days
 #' @return a ggplot
 #' @export
-doMap <- function(rawData, normalizeByPopulation = FALSE,
+doMap <- function(plotData, normalizeByPopulation = FALSE,
                   filterByCountry = NULL,
                   removeCountries = NULL,
                   chosenDay = NULL, showTrend = FALSE){
-  world <- getMapData(rawData, normalizeByPopulation, filterByCountry,
+  world <- getMapData(plotData, normalizeByPopulation, filterByCountry,
                       removeCountries, chosenDay, showTrend)
+  rawData <- slot(plotData, 'JHUData_diffSmooth')
   if(is.null(chosenDay)){
     chosenDay <- ncol(rawData)-6
   }
@@ -416,27 +452,26 @@ doMap <- function(rawData, normalizeByPopulation = FALSE,
 #' @title doQMap
 #' @description plot on a map the increase in number of cases over 100k subjects
 #' over the past 7 days
-#' @param newData (data.frame). A dataframe of data from JHU obtained with
-#' refreshData(doSmoothing = FALSE)
+#' @param plotData (covidData): S4 object
 #' @param plotCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
 #' @param categoricalPlot (logical): colour the countries in red if they had more than
 #' 20 cases, blue otherwise
 #' @return a ggplot
 #' @export
-doQMap <- function(newData, plotCountry = NULL, categoricalPlot = FALSE){
+doQMap <- function(plotData, plotCountry = NULL, categoricalPlot = FALSE){
   
+  
+  world <- slot(plotData, 'demographic')
+  newData <- slot(plotData, 'JHUData_diffSmooth')
   newData <- newData %>% filter(Province.State == Country.Region & type == 'cases')
   if (!is.null(plotCountry)){
     newData <- newData %>% filter(country %in% plotCountry)
   }
   
-  world <- ne_countries(scale = "medium", returnclass = "sf")
-  
-  
   for (i in 1:nrow(newData)){
-    newData$increase[i] <- suppressWarnings(sum(abs(diff(as.numeric(
-      newData[i, seq(ncol(newData)-9, ncol(newData)-2)]))), na.rm = TRUE))
+    newData$increase[i] <- suppressWarnings(sum(as.numeric(
+      newData[i, seq(ncol(newData)-9, ncol(newData)-2)]), na.rm = TRUE))
   }
   
   newData$countryCode <- suppressWarnings(countrycode(sourcevar = newData$country,
@@ -459,7 +494,7 @@ doQMap <- function(newData, plotCountry = NULL, categoricalPlot = FALSE){
 #' @title plotQMap
 #' @description plot on a map the increase in number of cases over 100k subjects
 #' over the past 7 days
-#' @param plotCountry (character): The countries to plot in the map. If NULL all
+#' @param world (data.frame): The countries with population data, from the package rnaturalearthdata
 #' countries are included
 #' @param categoricalPlot (logical): colour the countries in red if they had more than
 #' 20 cases, blue otherwise
@@ -486,7 +521,8 @@ plotQMap <- function(world, categoricalPlot){
       scale_fill_gradient2(low = "blue",
                            mid = "white",
                            high = "red",
-                           midpoint = 20)+
+                           midpoint = 20,
+                           limits = c(10, 30))+
       theme(legend.position = "none")
   } else {
     g <- g + scale_fill_viridis_c(option = "plasma")

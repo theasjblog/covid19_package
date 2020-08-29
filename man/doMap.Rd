@@ -5,7 +5,7 @@
 \title{doData}
 \usage{
 doMap(
-  rawData,
+  plotData,
   normalizeByPopulation = FALSE,
   filterByCountry = NULL,
   removeCountries = NULL,
@@ -14,7 +14,7 @@ doMap(
 )
 }
 \arguments{
-\item{rawData}{(dataframe): the data obtaind from refresData()}
+\item{plotData}{(covidData): S4 object}
 
 \item{normalizeByPopulation}{(logical): if TRUE, divide the number of cases by the
 country population}

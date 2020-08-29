@@ -4,8 +4,9 @@ Title: COVID-19 visualization
 Version: 0.0.1
 Author: Adrian Joseph
 Maintainer: Adrian Joseph <tequilacanaria@hotmail.it>
-Description: Visualiza COVID-19  data from JHU
-Imports: here
+Description: Visualiza COVID-19  data from JHU. Retrive, smooth and plot data.
+Imports: here, dplyr, ggplot2, zoo, countrycode, rnaturalearth, rnaturalearthdata,
+  rgeos, tidyr, methods
 Suggests: knitr, rmarkdown, testthat
 VignetteBuilder: knitr
 License: GPL-3
