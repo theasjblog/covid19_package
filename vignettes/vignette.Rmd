@@ -23,7 +23,7 @@ Data is provided by Johns Hopkins University and is obtained from <https://githu
 New data is obtained with (a network connection is required):
 
 ```{r getNewData}
-newData <- getAllData()
+newData <- getJHU()
 ```
 
 ## Plot a single metric
