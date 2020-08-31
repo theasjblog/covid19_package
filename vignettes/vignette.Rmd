@@ -28,7 +28,7 @@ newData <- getJHU()
 
 ## Plot a single metric
 
-The data provide time series for total cases, deatsh and recoveries.
+The data provide time series for total cases, deaths and recoveries.
 
 Each metric can be plotted for selected countries using:
 

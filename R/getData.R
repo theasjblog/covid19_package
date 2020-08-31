@@ -1,9 +1,14 @@
+#' @import dplyr
+#' @import tidyr
+#' @import ggplot2
+#' @import zoo
 #' @import here
 #' @import rnaturalearth
 #' @import rnaturalearthdata
 #' @import countrycode
 #' @import rgeos
 #' @import methods
+#' @import stringr
 
 #' @title getJHU
 #' @description create full data for the visualizer form JHU data
@@ -12,14 +17,60 @@
 getJHU <- function(){
   refreshJHU()
   rawData <- assembleAllData()
-  smoothData <- smoothDf(rawData)
-  diffSmooth <- diffSmoothDf(rawData)
+  rawData <- getCovidDf(rawData)
+  populationDf <- rawData$populationDf
+  keys <- rawData$keys
+  rawData <- rawData$dataDf
+  
+  idx <- which(colnames(rawData) != 'ID')
+  smoothData <- cbind(data.frame(ID = rawData$ID), smoothDf(rawData[, idx]))
+  diffRaw <- cbind(data.frame(ID = rawData$ID), diffRawDf(rawData[, idx]))
+  diffSmooth <- cbind(data.frame(ID = rawData$ID), diffSmoothDf(rawData[, idx]))
   
   fullSet <- new('covidData')
   slot(fullSet, 'JHUData_raw') <- rawData
   slot(fullSet, 'JHUData_smooth') <- smoothData
+  slot(fullSet, 'JHUData_diffRaw') <- diffRaw
   slot(fullSet, 'JHUData_diffSmooth') <- diffSmooth
+  slot(fullSet, 'populationDf') <- populationDf
+  slot(fullSet, 'keys') <- keys
   return(fullSet)
+}
+
+#' @title getCovidDf
+#' @description create a covidDf object
+#' @param df (data.frame) the data frame to convert to a list
+#' @return list with keys, populationDf and dataDf
+getCovidDf <- function(df){
+  idx <- which(str_detect(colnames(df), 'X.'))[1]
+  populationDf <- df[, seq(1, idx-1)]
+  dataDf <- df[, seq(idx, ncol(df))]
+  populationDf$ID <- seq(1, nrow(populationDf))
+  dataDf$ID <- seq(1, nrow(dataDf))
+  
+  keys <- getKeys(populationDf)
+  
+  return(list(keys = keys,
+              dataDf = dataDf,
+              populationDf = populationDf))
+  
+}
+
+#' @title getKeys
+#' @description Get all the possible keys for country/state/city
+#' @param populationDf (data.frame) the populationDf of the covidData object
+#' @return character vector
+getKeys <- function(populationDf){
+  popCountry <- unique(populationDf$Country)
+  popState <- populationDf %>% filter(!is.na(State))
+  popState <- unique(paste(popState$Country, popState$State, sep = ', '))
+  
+  popCity <- populationDf %>% filter(!is.na(State)) %>% filter(!is.na(City))
+  popCity <- unique(paste(popCity$Country, popCity$State, popCity$City, sep = ', '))
+  
+  keys <- sort(c(popCountry, popState, popCity))
+  
+  return(keys)
 }
 
 #' @title refreshJHU
@@ -50,7 +101,7 @@ assembleType <- function(type){
     pathUS <- 'time_series_covid19_confirmed_US.csv'
   } else if (type == 'deaths'){
     pathGlobal <- 'time_series_covid19_deaths_global.csv'
-    pathUS <- 'time_series_covid19_deaths_global.csv'
+    pathUS <- 'time_series_covid19_deaths_US.csv'
   } else if (type == 'recovered'){
     pathGlobal <- 'time_series_covid19_recovered_global.csv'
   }
@@ -65,6 +116,11 @@ assembleType <- function(type){
     allData <- cbind(data.frame(City = rep(NA, nrow(allData))),
                          allData)
     allData$City <- as.character(NA)
+  }
+  
+  if('Population' %in% colnames(allData)){
+    idx <- which(colnames(allData) != 'Population')
+    allData <- allData[, idx]
   }
   
   fullDataset <- full_join(popData, allData)
@@ -84,6 +140,7 @@ assembleAllData <- function(){
   recovered <- assembleType('recovered')
   fullDataset <- suppressWarnings(bind_rows(cases, deaths))
   fullDataset <- suppressWarnings(bind_rows(fullDataset, recovered))
+  fullDataset$Country[fullDataset$Country == 'US'] <- 'United States of America'
   
   return(fullDataset)
 }
@@ -140,7 +197,7 @@ getUS <- function(pathUS){
   USCases <- suppressWarnings(read.csv(here::here('COVID-19-master',
                                                   'csse_covid_19_data',
                                                   'csse_covid_19_time_series',
-                                                  'time_series_covid19_confirmed_US.csv')))
+                                                  pathUS)))
   colnames(USCases)[colnames(USCases) == 'Admin2'] <- 'City'
   colnames(USCases)[colnames(USCases) == 'Province_State'] <- 'State'
   colnames(USCases)[colnames(USCases) == 'Country_Region'] <- 'Country'

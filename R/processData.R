@@ -3,25 +3,38 @@
 #' @param df (data.frame) a data frame with rows of time series
 #' @return smoothed data frame
 smoothDf <- function(df){
-  timeS <- df[,seq(6, ncol(df))]
-  timeS <- apply(timeS, 1, function(x) smoothValues(as.numeric(x)))
-  timeS <- t(timeS)
-  df[,seq(6,ncol(df))] <- timeS
+  dfOr <- df
+  df <- apply(df, 1, function(x) smoothValues(as.numeric(x)))
+  df <- t(df)
+  dfOr[,] <- df
   
-  return(df)
+  return(dfOr)
 }
 
 #' @title diffSmoothDf
+#' @description smooth diff a df with time series
+#' @param df (data.frame) a data frame with rows of time series
+#' @return smoothed diff'ed data frame
+diffSmoothDf <- function(df){
+  dfOr <- df
+  df <- apply(df, 1, function(x) smoothValues(c(0, diff(as.numeric(x)))))
+  df <- t(df)
+  dfOr[,] <- df
+  
+  return(dfOr)
+}
+
+#' @title diffRawDf
 #' @description diff a df with time series
 #' @param df (data.frame) a data frame with rows of time series
 #' @return diff'ed data frame
-diffSmoothDf <- function(df){
-  timeS <- df[,seq(6, ncol(df))]
-  timeS <- apply(timeS, 1, function(x) smoothValues(c(0, diff(as.numeric(x)))))
-  timeS <- t(timeS)
-  df[,seq(6,ncol(df))] <- timeS
+diffRawDf <- function(df){
+  dfOr <- df
+  df <- apply(df, 1, function(x) c(0, diff(as.numeric(x))))
+  df <- t(df)
+  dfOr[,] <- df
   
-  return(df)
+  return(dfOr)
 }
 
 #' @title getDates
@@ -37,7 +50,7 @@ getDates <- function(jhuDates){
   return(dates)
 }
 
-#' @import zoo
+
 #' @title smoothValues
 #' @description smooth time series
 #' @param myVal (numeric vectro): the numbers to smooth
@@ -52,175 +65,14 @@ smoothValues <- function(myVal){
   return(smoothed)
 }
 
-#' @import dplyr
-#' @import tidyr
-#' @import ggplot2
-#' @title doPlot
-#' @description plot data for a single country
-#' @param df df of data from JHU
-#' @param typePlot cases, deaths or recovered
-#' @param countryPlot the country to plot
-#' @param scale if to plot in linear or log scale
-#' @param plotLim Dates max an min limits for the plot
-#' @param align logical If we should align by date of min number of cases/deaths/recovered
-#' or the rate of change (true)
+#' @title showGeographyFilter
+#' @description return the avilable geography filters
+#' @param plotData (covidData): S4 object
+#' @return character vector
 #' @export
-doPlot <- function(df, typePlot, countryPlot = NULL, scale = 'linear',
-                   plotLim = NULL, align = FALSE){
-  if(!typePlot %in% c('cases', 'deaths', 'recovered')){
-    stop('Invalid "type"')
-  }
-  if(!is.null(countryPlot) && !countryPlot %in% df$country){
-    stop('Invalid "country"')
-  }
-  
-  #filter by type
-  df <- df %>% 
-    filter(type == typePlot)
-  
-  #filter out the not requested country
-  if (!is.null(countryPlot)){
-    df <- df %>%
-      filter(country %in% countryPlot)
-  }
-  
-  df <- df[,-ncol(df)]
-  if (nrow(df)==0){
-    return(NULL)
-  }
-  
-  
-  values <- data.frame(dates = rep(colnames(df)[seq(5,ncol(df)-1)],
-                                   nrow(df)))
-  
-  values$country <- rep(df$country, each=ncol(df)-5)
-  res <- NULL
-  for (i in 1:nrow(df)){
-    res <- c(res,df[i, seq(5, ncol(df)-1)])
-  }
-  values$values <- as.numeric(res)
-  
-  values$dates <- as.Date(getDates(values$dates))
-  
-  values$country <- factor(values$country)
-  
-  
-  xLabel <- "Date"
-  if(align){
-    xLabel <- '# days'
-    th <- switch(typePlot,
-                 'cases' = 100,
-                 'deaths' = 50,
-                 'recovered' = 100)
-    sp <- split(values, values$country)
-    for(i in 1:length(sp)){
-      d <- sp[[i]]
-      d <- d %>%
-        filter(values >= th)
-      d$dates <- seq(0,nrow(d)-1)
-      sp[[i]] <- d
-    }
-    values <- bind_rows(sp)
-  }
-  
-  
-  if(scale == 'log'){
-    values$values <- log10(values$values)
-  }
-  
-  if (!is.null(plotLim)){
-    values$dateAsNum <- as.numeric(values$dates)-min(as.numeric(values$dates))
-    values <- values %>%
-      filter(dateAsNum >= plotLim[1])
-    values <- values %>%
-      filter(dateAsNum <= plotLim[2])
-    
-  }
-  
-  p <- ggplot(data = values, aes(x = dates,
-                                 y = values,
-                                 group = country)) +
-    geom_line(aes(color = country)) +
-    labs(x = xLabel,
-         y = "# cases",
-         title = toupper(typePlot)) +
-    theme_minimal()
-  
-  return(p)
-  
+showGeographyFilter <- function(dataObj){
+  return(slot(dataObj, 'keys'))
 }
-
-#' @title plotAllMetrics
-#' @description plot cases, deaths and recovered in a single plot
-#' @param allDf list of all Df metrics
-#' @param countryPlot character of a country
-#' @param scale character for plot in linear or log scale
-#' @param align logical If we should align by date of min number of cases/deaths/recovered
-#' or the rate of change (true)
-#' @export
-plotAllMetrics <- function(allDf, countryPlot, scale = 'linear', align = FALSE){
-  #filter out the requested country
-  df <- allDf %>% filter(country %in% countryPlot)
-  countries <- as.character(df$country)
-  df$country <- as.character(df$country)
-  sp <- split(df, df$type)
-  for (i in 1:length(sp)){
-    d <- sp[[i]]
-    thisType <- names(sp)[i]
-    sp1 <- split(d, d$country)
-    for (ii in 1:length(sp1)){
-      dd <- sp1[[ii]]
-      thisCountry <- unique(dd$country)
-      values <- data.frame(dates = rep(colnames(dd)[seq(5,ncol(dd)-2)],
-                                       nrow(dd)))
-      
-      values$country <- rep(dd$country, each=ncol(dd)-6)
-      res <- NULL
-      for (iii in 1:nrow(dd)){
-        res <- c(res,dd[iii, seq(5, ncol(dd)-2)])
-      }
-      values$values <- as.numeric(res)
-      values$dates <- as.Date(getDates(values$dates))
-      values$type <- thisType
-      sp1[[ii]] <- values
-    }
-    sp[[i]] <- bind_rows(sp1)
-  }
-  df <- bind_rows(sp)
-  countries <- as.character(df$country)
-  df$country <- factor(countries)
-  types <- as.character(df$type)
-  df$type <- factor(types)
-  
-  if(scale == 'log'){
-    df$values <- log10(df$values)
-  }
-  
-  p <- ggplot(data = df, aes(x = dates,
-                             y = values,
-                             group = type)) +
-    geom_line(aes(color = type)) +
-    labs(x = "Date",
-         y = "#",
-         title = toupper(paste(countryPlot, collapse = ' - '))) +
-    theme_minimal() +
-    facet_grid(rows = vars(country))
-  
-  return(p)
-}
-
-#' @title getSummaryTable
-#' @description summary table for all data obtained from JHU
-#' @param df JHU data.frame
-#' @return a summary data.frame
-#' @export
-getSummaryTable <- function(df){
-  res <- data.frame(country = df$country,
-                    type = df$type,
-                    total = df[, ncol(df)-2])
-  return(res)
-}
-
 
 #' @title getMapData
 #' @description get the data to plot on a map
