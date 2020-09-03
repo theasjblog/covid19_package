@@ -9,6 +9,7 @@
 #' @import rgeos
 #' @import methods
 #' @import stringr
+#' @import raster
 
 #' @title getJHU
 #' @description create full data for the visualizer form JHU data

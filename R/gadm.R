@@ -1,32 +1,35 @@
 #' @title getNewGADM
 #' @description refresh GADM map data for all needed couontries
+#' @param dataObj (coviData)
 #' @return save country rds to the data folder
 #' @export
-getNewGADM <- function(){
-  a <- getJHU()
-  aa <- a@populationDf %>% 
+getNewGADM <- function(dataObj){
+  aa <- dataObj@populationDf %>% 
     filter (type == 'cases') %>%
     group_by(Country) %>%
     tally()
   
   okCountry <- NULL
   for (i in aa$Country){
-    print(i)
     tryCatch({
       ic <- countrycode(sourcevar = i, origin = 'country.name', destination = 'iso3c')
-      aaa <- getData("GADM",country=ic,level=0)
+      aaa <- raster::getData("GADM",country=ic,level=0)
       okCountry <- c(okCountry, i)
       if (ic %in% c('USA', 'CAN', 'AUS')){
         aaa <- getData("GADM",country=ic,level=1)
-      } 
-    },error = function(e){})
+      }
+    },error = function(e){print(e)})
   }
   
   dr <- list.files()
   dr <- dr[str_detect(dr, '.rds')]
   
+  if(!dir.exists('./data')){
+    dir.create('./data')
+  }
   for (i in dr){
     file.copy(from = i, to = paste0('./data/', i), overwrite = TRUE)
+    file.remove(i)
   }
   
 }
