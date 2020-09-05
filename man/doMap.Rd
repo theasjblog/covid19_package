@@ -6,28 +6,25 @@
 \usage{
 doMap(
   plotData,
-  normalizeByPopulation = FALSE,
+  plotType,
   filterByCountry = NULL,
-  removeCountries = NULL,
-  chosenDay = NULL,
-  showTrend = FALSE
+  plotMetric = "cases",
+  chosenDay = NULL
 )
 }
 \arguments{
 \item{plotData}{(covidData): S4 object}
 
-\item{normalizeByPopulation}{(logical): if TRUE, divide the number of cases by the
-country population}
+\item{plotType}{(character): one of avgPast7_raw, avgPast7_normalised,
+cumulativeAll_raw, cumulativeAll_normalised, cumulativePast7_raw,
+cumulativePast7_normalised, avgToday_raw, avgToday_normalised}
 
 \item{filterByCountry}{(character): The countries to plot in the map. If NULL all
 countries are included}
 
-\item{removeCountries}{(character): countries to remove}
+\item{plotMetric}{(character) One of "cases", "deaths", "recovered"}
 
 \item{chosenDay}{(numeric): the day to plot}
-
-\item{showTrend}{(logical): colour the map by the variation of the last 5 days vs the previous
-5 days}
 }
 \value{
 a ggplot

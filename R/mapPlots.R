@@ -1,140 +1,164 @@
+#' @title plotMap
+#' @description single entry point to plot map
+#' @param plotData (covidData): S4 object
+#' @param plotType (character): one of doMapTrend_normalise, doMapTrend,
+#' doMapDataRate_raw, doMapDataRate_normalised,
+#' doMapGBQuarantine_binary, doMapGBQuarantine, doMapData_raw,
+#' doMapData_normalised
+#' @param filterByCountry (character): The countries to plot in the map. If NULL all
+#' countries are included
+#' @param plotMetric (character) One of "cases", "deaths", "recovered"
+#' @param chosenDay (numeric): the day to plot
+#' @return data frame of cases, deaths and recovered
+#' @export
+plotMap <- function(plotData, filterByCountry = NULL, 
+                             plotMetric = 'cases',
+                             chosenDay = NULL, plotType){
+  switch (plotType,
+    'doMapTrend_normalise' = doMapTrend_normalise(plotData, filterByCountry, 
+                                                  plotMetric, chosenDay),
+    'doMapTrend' = doMapTrend(plotData, filterByCountry, 
+                              plotMetric, chosenDay),
+    'doMapDataRate_raw' = doMapDataRate_raw(plotData, filterByCountry, 
+                                            plotMetric, chosenDay),
+    'doMapDataRate_normalised' = doMapDataRate_normalised(plotData, filterByCountry, 
+                                                          plotMetric, chosenDay),
+    'doMapGBQuarantine_binary' = doMapGBQuarantine_binary(plotData, filterByCountry, 
+                                                          plotMetric, chosenDay),
+    'doMapGBQuarantine' = doMapGBQuarantine(plotData, filterByCountry, 
+                                            plotMetric, chosenDay),
+    'doMapData_raw' = doMapData_raw(plotData, filterByCountry, 
+                                    plotMetric, chosenDay),
+    'doMapData_normalised' = doMapData_normalised(plotData, filterByCountry, 
+                                                  plotMetric, chosenDay)
+  )
+}
+
+
+
 #' @title getMapData
 #' @description get the data to plot on a map
 #' @param plotData (covidData): S4 object
-#' @param gadm (list) list with data of all the available countries
-#' @param normalizeByPopulation (logical): if TRUE, divide the number of cases by the
-#' country population
+#' @param plotType (character): one of avgPast7_raw, avgPast7_normalised,
+#' cumulativeAll_raw, cumulativeAll_normalised, cumulativePast7_raw,
+#' cumulativePast7_normalised, avgToday_raw, avgToday_normalised
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
-#' @param plotMatric (character) One of "cases", "deaths", "recovered"
+#' @param plotMetric (character) One of "cases", "deaths", "recovered"
 #' @param chosenDay (numeric): the day to plot
-#' @param showTrend (logical): colour the map by the variation of the last 5 days vs the previous
-#' 5 days
 #' @return data frame of cases, deaths and recovered
-getMapData <- function(plotData, gadm, normalizeByPopulation = FALSE,
+getMapData <- function(plotData, plotType,
                        filterByCountry = NULL, plotMetric = 'cases',
-                       chosenDay = NULL, showTrend = FALSE){
+                       chosenDay = NULL){
+  
+  if(str_detect(plotType, '_raw')){
+    df <- slot(plotData, 'JHUData_raw')
+    dfSmooth <- slot(plotData, 'JHUData_smooth')
+  } else if(str_detect(plotType, '_normalised')){
+    df <- slot(plotData, 'JHUData_diffRaw')
+    dfSmooth <- slot(plotData, 'JHUData_diffSmooth')
+  }
   
   #get the country to plot
+  populationDf <- slot(plotData, 'populationDf')
   if(is.null(filterByCountry)){
-    filterByCountry <- as.character(unique(slot(plotData,
-                                                'populationDf')$Country))
+    filterByCountry <- as.character(unique(populationDf$Country))
   }
-  filterByCountryiso3c <- countrycode(filterByCountry, origin = 'country.name',
-                                      destination = 'iso3c')
+  populationDf <- populationDf %>% 
+    filter(Country %in% filterByCountry & type == plotMetric)
   
-  
-  idx <- which(names(gadm) %in% filterByCountryiso3c)
-  gadm <- gadm[idx]
-  
-  
-  if(showTrend){
-    df <- slot(plotData, 'JHUData_raw')
-    chosenDay <- NULL
-  } else {
-    df <- slot(plotData, 'JHUData_diffRaw')
-  }
-  
-  toInclude <- slot(plotData, 'populationDf') %>% 
-    filter(type == plotMetric & Country %in% filterByCountry)
-  OKids <- toInclude$ID
-  df <- df[OKids,seq(1,ncol(df))]
-  
-  
+  df <- df %>% filter(ID %in% populationDf$ID)
+  dfSmooth <- dfSmooth %>% filter(ID %in% populationDf$ID)
   
   if(is.null(chosenDay)){
     idxChosenDay <- ncol(df)-1
   }
   
-  resMetric <- list()
-  resPop <- list()
-  for (i in unique(toInclude$Country)){
-    idx <- which(toInclude$Country == i)
-    resPop[[length(resPop)+1]] <- c(i,
-                                    sum(toInclude$Population[idx],
-                                        na.rm = TRUE))
-    IDs <- toInclude$ID[idx]
-    tmp <- df %>% filter(ID %in% IDs)
-    tmp <- df[, which(colnames(tmp) != 'ID')]
-    tmp <- colSums(tmp, na.rm = TRUE)
-    resMetric[[length(resMetric)+1]] <- tmp
+  if(str_detect(plotType, '_normalised')){
+    df[,colnames(df)!='ID'] <- df[,colnames(df)!='ID']*100e3/populationDf$Population
+    dfSmooth[,colnames(dfSmooth)!='ID'] <- dfSmooth[,colnames(dfSmooth)!='ID']*100e3/populationDf$Population
   }
   
-  resMetric <- as.data.frame(do.call(rbind, resMetric))
-  resPop <- as.data.frame(do.call(rbind, resPop))
-  colnames(resPop) <- c('Country', 'Population')
+  f <- function(x){
+    sum(diff(x[seq(idxChosenDay-6, idxChosenDay)]))
+  }
   
+  if (str_detect(plotType, 'Past7')){
+    values <- apply(df,1,f)
+    valuesSmooth <- apply(dfSmooth,1,f)
+  } else {
+    values <- as.numeric(df[,idxChosenDay])
+    valuesSmooth <- as.numeric(dfSmooth[,idxChosenDay])
+  }
+  
+  # if we show the trend, we need ot show if it is increasing or decreasing
   #get trends
-  if(showTrend){
-    for(i in 1:nrow(resPop)){
-      lastTen <- mean(diff(as.numeric(resMetric[i,
-                                                seq(ncol(resMetric)-10,
-                                                    ncol(resMetric))])),
+  if(str_detect(plotType, 'avg') & str_detect(plotType, 'Past7')){
+    for(i in 1:nrow(dfSmooth)){
+      lastTen <- mean(diff(as.numeric(dfSmooth[i,
+                                        seq(idxChosenDay-7,# breaks if idx<7
+                                            idxChosenDay)])),
                       na.rm = TRUE)
-      meanVal <- round(mean(as.numeric(resMetric[i,
-                                      seq(ncol(resMetric)-10,
-                                          ncol(resMetric))]),
-                            na.rm = TRUE))
-    }}
-        
-    #     if(!is.na(meanVal)){
-    #       if(lastTen<0){
-    #         meanVal <- meanVal*-1
-    #       }
-    #       world$cases[idx] <- meanVal
-    #     }
-    #   } else {
-    #     world$cases[idx] <- rawData[idxCC, idxChosenDay]
-    #   }
-    # }
-    # 
+      
+       
 
-  if (normalizeByPopulation){
-    world$cases <- suppressWarnings(world$cases/world$pop_est)
+      if (lastTen<0){
+        values[i] <- values[i]/-7
+      } else {
+        values[i] <- values[i]/7
+      }
+    }
   }
-
-  idx <- which(!is.na(world$cases))
-  world <- world[idx, ]
-
+  
+  world <- ne_countries(scale = "medium", returnclass = "sf")
+  chosenCountriesiso3c <- countrycode(filterByCountry,
+                                      origin = 'country.name',
+                                      destination = 'iso3c')
+  world <- world %>% filter(gu_a3 %in% chosenCountriesiso3c)
+  newData <- data.frame(plotValues = values,
+                        gu_a3 = chosenCountriesiso3c)
+  # potenital issue: newData has countries not in world
+  world <- merge(world, newData, by  = 'gu_a3', all = TRUE)
+  
   return(world)
-
+  
 }
 
 #' @title doData
 #' @description plot on a map
 #' @param plotData (covidData): S4 object
-#' @param normalizeByPopulation (logical): if TRUE, divide the number of cases by the
-#' country population
+#' @param plotType (character): one of avgPast7_raw, avgPast7_normalised,
+#' cumulativeAll_raw, cumulativeAll_normalised, cumulativePast7_raw,
+#' cumulativePast7_normalised, avgToday_raw, avgToday_normalised
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
-#' @param removeCountries (character): countries to remove
+#' @param plotMetric (character) One of "cases", "deaths", "recovered"
 #' @param chosenDay (numeric): the day to plot
-#' @param showTrend (logical): colour the map by the variation of the last 5 days vs the previous
-#' 5 days
 #' @return a ggplot
 #' @export
-doMap <- function(plotData, normalizeByPopulation = FALSE,
-                  filterByCountry = NULL,
-                  removeCountries = NULL,
-                  chosenDay = NULL, showTrend = FALSE){
-  world <- getMapData(plotData, normalizeByPopulation, filterByCountry,
-                      removeCountries, chosenDay, showTrend)
+doMap <- function(plotData, plotType,
+                  filterByCountry = NULL, plotMetric = 'cases',
+                  chosenDay = NULL){
+  world <- getMapData(plotData, plotType,
+                      filterByCountry, plotMetric,
+                      chosenDay)
+  
   rawData <- slot(plotData, 'JHUData_diffSmooth')
   if(is.null(chosenDay)){
-    chosenDay <- ncol(rawData)-6
+    chosenDay <- ncol(rawData)-1
   }
-  dateChar <- as.Date(getDates(colnames(rawData[seq(5,ncol(rawData)-2)])))
+  dateChar <- as.Date(getDates(colnames(rawData[seq(1,ncol(rawData)-1)])))
   dateChar <- dateChar[chosenDay]
-  if (normalizeByPopulation){
+  #if (normalizeByPopulation){
     plotTitle <- paste0('Cases normalized by population \n Day: ', dateChar)
-  } else {
+  #} else {
     plotTitle <- paste0('Cases \n Day: ', dateChar)
-  }
-  if (showTrend){
+  #}
+  #if (showTrend){
     plotTitle <- 'Average daily trend'
-  }
+  #}
   g <- ggplot(data = world) +
-    geom_sf(aes(fill = cases)) +
+    geom_sf(aes(fill = plotValues)) +
     scale_fill_viridis_c(option = "plasma")+
     ggtitle(plotTitle) +
     theme_bw() +
@@ -158,20 +182,20 @@ doMap <- function(plotData, normalizeByPopulation = FALSE,
 #' @return a ggplot
 #' @export
 doQMap <- function(plotData, plotCountry = NULL, categoricalPlot = FALSE){
-
-
+  
+  
   world <- slot(plotData, 'demographic')
   newData <- slot(plotData, 'JHUData_diffSmooth')
   newData <- newData %>% filter(Province.State == Country.Region & type == 'cases')
   if (!is.null(plotCountry)){
     newData <- newData %>% filter(country %in% plotCountry)
   }
-
+  
   for (i in 1:nrow(newData)){
     newData$increase[i] <- suppressWarnings(sum(as.numeric(
       newData[i, seq(ncol(newData)-9, ncol(newData)-2)]), na.rm = TRUE))
   }
-
+  
   newData$countryCode <- suppressWarnings(countrycode(sourcevar = newData$country,
                                                       origin = 'country.name',
                                                       destination = 'iso3c'))
@@ -180,12 +204,12 @@ doQMap <- function(plotData, plotCountry = NULL, categoricalPlot = FALSE){
     idx <- which(newData$countryCode == world$gu_a3[i])
     world$increase[i] <- round(newData$increase[idx]*100e3/world$pop_est[i])
   }
-
-
+  
+  
   g <- plotQMap(world, categoricalPlot)
-
+  
   return(g)
-
+  
 }
 
 
@@ -202,7 +226,7 @@ plotQMap <- function(world, categoricalPlot){
     world$increase[world$increase>=20] <- 30
     world$increase[world$increase<20] <- 10
   }
-
+  
   plotTitle <- 'Number of cases every 100K subjects \nover the past 7 days'
   g <- ggplot(data = world) +
     geom_sf(aes(fill = increase)) +
@@ -213,7 +237,7 @@ plotQMap <- function(world, categoricalPlot){
           axis.text.x = element_blank(), axis.text.y = element_blank(),
           axis.ticks = element_blank()) +
     labs(fill = "")
-
+  
   if(categoricalPlot){
     g <- g +
       scale_fill_gradient2(low = "blue",
@@ -225,7 +249,7 @@ plotQMap <- function(world, categoricalPlot){
   } else {
     g <- g + scale_fill_viridis_c(option = "plasma")
   }
-
+  
   return(g)
 }
 

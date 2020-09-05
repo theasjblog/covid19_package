@@ -12,8 +12,7 @@ doPlot(
   smooth = TRUE,
   scale = "linear",
   normalizeByPop = FALSE,
-  plotLim = NULL,
-  align = FALSE
+  plotLim = NULL
 )
 }
 \arguments{
@@ -33,9 +32,6 @@ To see all available combinations use showGeographyFilter(dataObj)}
 \item{normalizeByPop}{(logical), if true, report metric y 100K people}
 
 \item{plotLim}{Dates max an min limits for the plot}
-
-\item{align}{logical If we should align by date of min number of cases/deaths/recovered
-or the rate of change (true)}
 }
 \description{
 plot data for a single country

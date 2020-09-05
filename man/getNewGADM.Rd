@@ -4,7 +4,10 @@
 \alias{getNewGADM}
 \title{getNewGADM}
 \usage{
-getNewGADM()
+getNewGADM(dataObj)
+}
+\arguments{
+\item{dataObj}{(coviData)}
 }
 \value{
 save country rds to the data folder

@@ -10,6 +10,7 @@
 #' @import methods
 #' @import stringr
 #' @import raster
+#' @import reshape2
 
 #' @title getJHU
 #' @description create full data for the visualizer form JHU data

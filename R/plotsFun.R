@@ -9,10 +9,8 @@
 #' @param scale if to plot in linear or log scale
 #' @param normalizeByPop (logical), if true, report metric y 100K people
 #' @param plotLim Dates max an min limits for the plot
-#' @param align logical If we should align by date of min number of cases/deaths/recovered
-#' or the rate of change (true)
 prepareDataPlot <- function(dataObj, geographyFilter, typePlot, plotRate,
-                            smooth, scale, normalizeByPop, plotLim, align){
+                            smooth, scale, normalizeByPop, plotLim){
   if (plotRate){
     if (smooth){
       df <- slot(dataObj, 'JHUData_diffSmooth')
@@ -59,27 +57,15 @@ prepareDataPlot <- function(dataObj, geographyFilter, typePlot, plotRate,
     df$Area <- geographyFilter
   }
   
-  idx <- which(colnames(df) %in% c('Population', 'Area'))
-  values <- data.frame(dates = rep(colnames(df)[-idx],
-                                   nrow(df)))
-  
-  values$area <- rep(df$Area, each=ncol(df)-length(idx))
-  res <- NULL
-  for (i in 1:nrow(df)){
-    res <- c(res,df[i, -idx])
-  }
-  values$values <- as.numeric(res)
-  
-  values$dates <- as.Date(getDates(values$dates))
-  
-  values$area <- factor(values$area)
+  values <- melt(df, id.vars = 'Area')
+  values$variable <- getDates(values$variable)
   
   if(scale == 'log'){
-    values$values <- log10(values$values)
+    values$value <- log10(values$value)
   }
   
   if (!is.null(plotLim)){
-    values$dateAsNum <- as.numeric(values$dates)-min(as.numeric(values$dates))
+    values$dateAsNum <- as.Date(values$variable)-min(as.Date(values$variable))
     values <- values %>%
       filter(dateAsNum >= plotLim[1])
     values <- values %>%
@@ -87,21 +73,6 @@ prepareDataPlot <- function(dataObj, geographyFilter, typePlot, plotRate,
     
   }
   
-  if(align){
-    th <- switch(typePlot,
-                 'cases' = 100,
-                 'deaths' = 50,
-                 'recovered' = 100)
-    sp <- split(values, values$area)
-    for(i in 1:length(sp)){
-      d <- sp[[i]]
-      d <- d %>%
-        filter(values >= th)
-      d$dates <- seq(0,nrow(d)-1)
-      sp[[i]] <- d
-    }
-    values <- bind_rows(sp)
-  }
   
   return(values)
 }
@@ -118,30 +89,25 @@ prepareDataPlot <- function(dataObj, geographyFilter, typePlot, plotRate,
 #' @param scale if to plot in linear or log scale
 #' @param normalizeByPop (logical), if true, report metric y 100K people
 #' @param plotLim Dates max an min limits for the plot
-#' @param align logical If we should align by date of min number of cases/deaths/recovered
-#' or the rate of change (true)
 #' @export
 doPlot <- function(dataObj, geographyFilter = NULL, typePlot = 'cases',
-                   plotRate = FALSE, smooth = TRUE, scale = 'linear', normalizeByPop = FALSE,
-                   plotLim = NULL, align = FALSE){
+                   plotRate = FALSE, smooth = TRUE, scale = 'linear',
+                   normalizeByPop = FALSE,
+                   plotLim = NULL){
   # add validation
   values <- prepareDataPlot(dataObj = dataObj, geographyFilter = geographyFilter,
                             typePlot = typePlot, plotRate = plotRate, smooth = smooth,
                             scale = scale, normalizeByPop = normalizeByPop,
-                            plotLim = plotLim, align = align)
+                            plotLim = plotLim)
   
-  if(align){
-    xLabel <- '# days'
-  } else {
-    xLabel <- "Date"
-  }
+  xLabel <- "Date"
   
   
   
-  p <- ggplot(data = values, aes(x = dates,
-                                 y = values,
-                                 group = area)) +
-    geom_line(aes(color = area)) +
+  p <- ggplot(data = values, aes(x = as.Date(variable),
+                                 y = value,
+                                 group = Area)) +
+    geom_line(aes(color = Area)) +
     labs(x = xLabel,
          y = paste0("# ", typePlot),
          title = toupper(typePlot)) +
@@ -161,39 +127,37 @@ doPlot <- function(dataObj, geographyFilter = NULL, typePlot = 'cases',
 #' @param scale if to plot in linear or log scale
 #' @param normalizeByPop (logical), if true, report metric y 100K people
 #' @param plotLim Dates max an min limits for the plot
-#' @param align logical If we should align by date of min number of cases/deaths/recovered
-#' or the rate of change (true)
 #' @export
 plotAllMetrics <- function(dataObj, geographyFilter = NULL,
                            plotRate = FALSE, smooth = TRUE, scale = 'linear',
-                           normalizeByPop = FALSE, plotLim = NULL, align = FALSE){
+                           normalizeByPop = FALSE, plotLim = NULL){
   valuesCases <- prepareDataPlot(dataObj = dataObj, geographyFilter = geographyFilter,
                                  plotRate = plotRate, smooth = smooth, scale = scale,
                                  normalizeByPop = normalizeByPop, plotLim = plotLim,
-                                 align = align, typePlot = 'cases')
+                                 typePlot = 'cases')
   valuesDeaths <- prepareDataPlot(dataObj = dataObj, geographyFilter = geographyFilter,
                                   plotRate = plotRate, smooth = smooth, scale = scale,
                                   normalizeByPop = normalizeByPop, plotLim = plotLim,
-                                  align = align, typePlot = 'deaths')
+                                  typePlot = 'deaths')
   valuesRecovered <- prepareDataPlot(dataObj = dataObj, geographyFilter = geographyFilter,
                                      plotRate = plotRate, smooth = smooth, scale = scale,
                                      normalizeByPop = normalizeByPop, plotLim = plotLim,
-                                     align = align, typePlot = 'recovered')
+                                     typePlot = 'recovered')
   values <- bind_rows(valuesCases, valuesDeaths, valuesRecovered)
   values$type <- c(rep('cases', nrow(valuesCases)),
                    rep('deaths', nrow(valuesDeaths)),
                    rep('recovered', nrow(valuesRecovered)))
   values <- values %>% filter(!is.na(values))
   
-  p <- ggplot(data = values, aes(x = dates,
-                             y = values,
+  p <- ggplot(data = values, aes(x = as.Date(variable),
+                             y = value,
                              group = type)) +
     geom_line(aes(color = type)) +
     labs(x = "Date",
          y = "#",
          title = toupper(paste(geographyFilter, collapse = ' - '))) +
     theme_minimal() +
-    facet_grid(rows = vars(area))
+    facet_grid(rows = vars(Area))
   
   return(p)
 }
