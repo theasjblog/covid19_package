@@ -38,7 +38,7 @@ getMapDataRate_raw <- function(plotData, filterByCountry = NULL,
   sp <- split(df, df$Country)
   sp <- lapply(sp, function(d){
     idx <- which(str_detect(colnames(d), 'X'))
-    res <- as.data.frame(t(round(colSums(d[,idx]))))
+    res <- as.data.frame(t(round(colSums(d[,idx], na.rm = TRUE))))
     res$Country <- unique(d$Country)
     return(res)
   })

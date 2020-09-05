@@ -38,8 +38,8 @@ getMapTrend <- function(plotData, filterByCountry = NULL,
   sp <- split(df, df$Country)
   sp <- lapply(sp, function(d){
     idx <- which(str_detect(colnames(d), 'X'))
-    res <- colSums(d[,idx])
-    res <- median(diff(res[seq(idxChosenDay-5, idxChosenDay+1)]))
+    res <- colSums(d[,idx], na.rm = TRUE)
+    res <- median(diff(res[seq(idxChosenDay-5, idxChosenDay+1)]), na.rm = TRUE)
     nameDay <- colnames(d)[idx]
     nameDay <- nameDay[idxChosenDay+1]
     res <- data.frame(X = round(res),

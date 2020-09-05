@@ -39,7 +39,7 @@ getMapTrend_normalise <- function(plotData, filterByCountry = NULL,
   sp <- lapply(sp, function(d){
     idx <- which(str_detect(colnames(d), 'X'))
     res <- colSums(d[,idx])
-    res <- median(diff(res[seq(idxChosenDay-5, idxChosenDay+1)]))
+    res <- median(diff(res[seq(idxChosenDay-5, idxChosenDay+1)]), na.rm = TRUE)
     totoPop <- sum(d$Population, na.rm = TRUE)
     res <- round(res*100e3/totoPop)
     nameDay <- colnames(d)[idx]

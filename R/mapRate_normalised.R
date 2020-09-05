@@ -39,7 +39,7 @@ getMapDataRate_normalised <- function(plotData, filterByCountry = NULL,
   sp <- lapply(sp, function(d){
     idx <- which(str_detect(colnames(d), 'X'))
     totoPop <- sum(d$Population, na.rm = TRUE)
-    res <- as.data.frame(t(round(colSums(d[,idx])/totoPop*100e3)))
+    res <- as.data.frame(t(round(colSums(d[,idx], na.rm = TRUE)/totoPop*100e3)))
     res$Country <- unique(d$Country)
     return(res)
   })

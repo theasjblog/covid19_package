@@ -41,7 +41,7 @@ getMapGBQuarantine <- function(plotData, filterByCountry = NULL,
     totoPop <- sum(d$Population, na.rm = TRUE)
     res <- colSums(d[,idx])/totoPop*100e3
     nameDay <- names(res)[idxChosenDay+1]
-    res <- sum(res[seq(idxChosenDay-5, idxChosenDay+1)])
+    res <- sum(res[seq(idxChosenDay-5, idxChosenDay+1)], na.rm = TRUE)
     res <- data.frame(X = round(res),
                       Country = unique(d$Country))
     colnames(res) <- c(nameDay, 'Country')
