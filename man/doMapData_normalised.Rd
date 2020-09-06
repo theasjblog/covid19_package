@@ -5,14 +5,14 @@
 \title{doMapData_normalised}
 \usage{
 doMapData_normalised(
-  plotData,
+  world,
   filterByCountry = NULL,
   plotMetric = "cases",
   chosenDay = NULL
 )
 }
 \arguments{
-\item{plotData}{(covidData): S4 object}
+\item{world}{(sf): sf object to plot}
 
 \item{filterByCountry}{(character): The countries to plot in the map. If NULL all
 countries are included}

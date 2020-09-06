@@ -67,16 +67,15 @@ getMapData_raw <- function(plotData, filterByCountry = NULL,
 
 #' @title doMapData_raw
 #' @description plot on a map
-#' @param plotData (covidData): S4 object
+#' @param world (sf): sf object to plot
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
 #' @param plotMetric (character) One of "cases", "deaths", "recovered"
 #' @param chosenDay (numeric): the day to plot
 #' @return a ggplot
-doMapData_raw <- function(plotData, filterByCountry = NULL,
+doMapData_raw <- function(world, filterByCountry = NULL,
                                   plotMetric = 'cases',
                                   chosenDay = NULL){
-  world <- getMapData_raw(plotData, filterByCountry, plotMetric, chosenDay)
   
   g <- tm_shape(world) +
     tm_borders() +

@@ -74,16 +74,15 @@ getMapTrend_normalise <- function(plotData, filterByCountry = NULL,
 
 #' @title doMapTrend_normalise
 #' @description plot on a map
-#' @param plotData (covidData): S4 object
+#' @param world (sf): sf object to plot
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
 #' @param plotMetric (character) One of "cases", "deaths", "recovered"
 #' @param chosenDay (numeric): the day to plot
 #' @return a ggplot
-doMapTrend_normalise <- function(plotData, filterByCountry = NULL,
+doMapTrend_normalise <- function(world, filterByCountry = NULL,
                        plotMetric = 'cases',
                        chosenDay = NULL){
-  world <- getMapTrend_normalise(plotData, filterByCountry, plotMetric, chosenDay)
   
   g <- tm_shape(world) +
     tm_borders() +

@@ -72,16 +72,15 @@ getMapTrend <- function(plotData, filterByCountry = NULL,
 
 #' @title doMapTrend
 #' @description plot on a map
-#' @param plotData (covidData): S4 object
+#' @param world (sf): sf object to plot
 #' @param filterByCountry (character): The countries to plot in the map. If NULL all
 #' countries are included
 #' @param plotMetric (character) One of "cases", "deaths", "recovered"
 #' @param chosenDay (numeric): the day to plot
 #' @return a ggplot
-doMapTrend <- function(plotData, filterByCountry = NULL,
+doMapTrend <- function(world, filterByCountry = NULL,
                               plotMetric = 'cases',
                               chosenDay = NULL){
-  world <- getMapTrend(plotData, filterByCountry, plotMetric, chosenDay)
   
   g <- tm_shape(world) +
     tm_borders() +

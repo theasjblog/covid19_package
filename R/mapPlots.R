@@ -41,8 +41,8 @@ getMapTitle <- function(world, filterByCountry = NULL,
   }
   
   res <- switch (plotType,
-                 'doMapTrend_normalise' = datesRange(world, plotMetric, NULL),
-                 'doMapTrend' = datesRange(world, plotMetric, '\nnormalised every 100,000 individuals'),
+                 'doMapTrend_normalise' = datesRange(world, plotMetric, '\nnormalised every 100,000 individuals'),
+                 'doMapTrend' = datesRange(world, plotMetric, NULL),
                  'doMapDataRate_raw' = paste0('New ', plotMetric, ' on day ', unique(world$variable)),
                  'doMapDataRate_normalised' = paste0('New ', plotMetric, ' on day ',
                                                      unique(world$variable),
@@ -57,7 +57,7 @@ getMapTitle <- function(world, filterByCountry = NULL,
   return(res)
 }
 
-#' @title plotMap
+#' @title getWorld
 #' @description single entry point to plot map
 #' @param plotData (covidData): S4 object
 #' @param plotType (character): one of doMapTrend_normalise, doMapTrend,
@@ -70,25 +70,61 @@ getMapTitle <- function(world, filterByCountry = NULL,
 #' @param chosenDay (numeric): the day to plot
 #' @return data frame of cases, deaths and recovered
 #' @export
-plotMap <- function(plotData, filterByCountry = NULL, 
+getWorld <- function(plotData, filterByCountry = NULL, 
+                     plotMetric = 'cases',
+                     chosenDay = NULL, plotType){
+  switch (plotType,
+          'doMapTrend_normalise' = getMapTrend_normalise(plotData, filterByCountry, 
+                                                        plotMetric, chosenDay),
+          'doMapTrend' = getMapTrend(plotData, filterByCountry, 
+                                    plotMetric, chosenDay),
+          'doMapDataRate_raw' = getMapDataRate_raw(plotData, filterByCountry, 
+                                                  plotMetric, chosenDay),
+          'doMapDataRate_normalised' = getMapDataRate_normalised(plotData, filterByCountry, 
+                                                                plotMetric, chosenDay),
+          'doMapGBQuarantine_binary' = getMapGBQuarantine_binary(plotData, filterByCountry, 
+                                                                plotMetric, chosenDay),
+          'doMapGBQuarantine' = getMapGBQuarantine(plotData, filterByCountry, 
+                                                  plotMetric, chosenDay),
+          'doMapData_raw' = getMapData_raw(plotData, filterByCountry, 
+                                          plotMetric, chosenDay),
+          'doMapData_normalised' = getMapData_normalised(plotData, filterByCountry, 
+                                                        plotMetric, chosenDay)
+  )
+}
+
+#' @title plotMap
+#' @description single entry point to plot map
+#' @param world (sf): S4 object
+#' @param plotType (character): one of doMapTrend_normalise, doMapTrend,
+#' doMapDataRate_raw, doMapDataRate_normalised,
+#' doMapGBQuarantine_binary, doMapGBQuarantine, doMapData_raw,
+#' doMapData_normalised
+#' @param filterByCountry (character): The countries to plot in the map. If NULL all
+#' countries are included
+#' @param plotMetric (character) One of "cases", "deaths", "recovered"
+#' @param chosenDay (numeric): the day to plot
+#' @return data frame of cases, deaths and recovered
+#' @export
+plotMap <- function(world, filterByCountry = NULL, 
                              plotMetric = 'cases',
                              chosenDay = NULL, plotType){
   switch (plotType,
-    'doMapTrend_normalise' = doMapTrend_normalise(plotData, filterByCountry, 
+    'doMapTrend_normalise' = doMapTrend_normalise(world, filterByCountry, 
                                                   plotMetric, chosenDay),
-    'doMapTrend' = doMapTrend(plotData, filterByCountry, 
+    'doMapTrend' = doMapTrend(world, filterByCountry, 
                               plotMetric, chosenDay),
-    'doMapDataRate_raw' = doMapDataRate_raw(plotData, filterByCountry, 
+    'doMapDataRate_raw' = doMapDataRate_raw(world, filterByCountry, 
                                             plotMetric, chosenDay),
-    'doMapDataRate_normalised' = doMapDataRate_normalised(plotData, filterByCountry, 
+    'doMapDataRate_normalised' = doMapDataRate_normalised(world, filterByCountry, 
                                                           plotMetric, chosenDay),
-    'doMapGBQuarantine_binary' = doMapGBQuarantine_binary(plotData, filterByCountry, 
+    'doMapGBQuarantine_binary' = doMapGBQuarantine_binary(world, filterByCountry, 
                                                           plotMetric, chosenDay),
-    'doMapGBQuarantine' = doMapGBQuarantine(plotData, filterByCountry, 
+    'doMapGBQuarantine' = doMapGBQuarantine(world, filterByCountry, 
                                             plotMetric, chosenDay),
-    'doMapData_raw' = doMapData_raw(plotData, filterByCountry, 
+    'doMapData_raw' = doMapData_raw(world, filterByCountry, 
                                     plotMetric, chosenDay),
-    'doMapData_normalised' = doMapData_normalised(plotData, filterByCountry, 
+    'doMapData_normalised' = doMapData_normalised(world, filterByCountry, 
                                                   plotMetric, chosenDay)
   )
 }
