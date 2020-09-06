@@ -82,26 +82,13 @@ doMapTrend <- function(plotData, filterByCountry = NULL,
                               plotMetric = 'cases',
                               chosenDay = NULL){
   world <- getMapTrend(plotData, filterByCountry, plotMetric, chosenDay)
-  dayStop <- unique(world$variable)
-  dayStart <- as.character(as.Date(unique(world$variable))-7)
   
-  plotTitle <- paste0('Trend of ', plotMetric,
-                      '\nfrom ', dayStart, ' to ', dayStop)
+  g <- tm_shape(world) +
+    tm_borders() +
+    tm_fill('value', title = '')
+  if(!is.null(filterByCountry)){
+    g <- g + tm_facets(by = "name_long")
+  }
   
-  g <- ggplot(data = world) +
-    geom_sf(aes(fill = value)) +
-    scale_fill_gradient2(low = "blue",
-                         mid = "white",
-                         high = "red",
-                         midpoint = 0,
-                         limits = c(min(world$value, na.rm = TRUE),
-                                    max(world$value, na.rm = TRUE)))+
-    ggtitle(plotTitle) +
-    theme_bw() +
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = 'aliceblue'),
-          axis.text.x = element_blank(), axis.text.y = element_blank(),
-          axis.ticks = element_blank()) +
-    labs(fill = "")
   return(g)
 }

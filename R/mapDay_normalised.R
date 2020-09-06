@@ -80,20 +80,14 @@ doMapData_normalised <- function(plotData, filterByCountry = NULL,
                           chosenDay = NULL){
   world <- getMapData_normalised(plotData, filterByCountry, plotMetric, chosenDay)
   
-  plotTitle <- paste0(plotMetric, ' on day ',
-                      unique(world$variable),
-                      '\nnormalised every 100,000 individuals')
+  g <- tm_shape(world) +
+    tm_borders() +
+    tm_fill('value', title = '')
   
-  g <- ggplot(data = world) +
-    geom_sf(aes(fill = value)) +
-    scale_fill_viridis_c(option = "plasma")+
-    ggtitle(plotTitle) +
-    theme_bw() +
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = 'aliceblue'),
-          axis.text.x = element_blank(), axis.text.y = element_blank(),
-          axis.ticks = element_blank()) +
-    labs(fill = "")
+  if(!is.null(filterByCountry)){
+    g <- g + tm_facets(by = "name_long")
+  }
+  
   return(g)
 }
 

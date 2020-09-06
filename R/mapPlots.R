@@ -1,3 +1,62 @@
+#' @title getMapTitle
+#' @description Get the map title. Used by the frontend app
+#' @param world (sf): results of getMap[...]()
+#' @param plotType (character): one of doMapTrend_normalise, doMapTrend,
+#' doMapDataRate_raw, doMapDataRate_normalised,
+#' doMapGBQuarantine_binary, doMapGBQuarantine, doMapData_raw,
+#' doMapData_normalised
+#' @param filterByCountry (character): The countries to plot in the map. If NULL all
+#' countries are included
+#' @param plotMetric (character) One of "cases", "deaths", "recovered"
+#' @param chosenDay (numeric): the day to plot
+#' @return character string of the map title
+#' @export
+getMapTitle <- function(world, filterByCountry = NULL, 
+                        plotMetric = 'cases',
+                        chosenDay = NULL, plotType){
+  datesRange <- function(world, plotMetric, normalised){
+    dayStop <- unique(world$variable)
+    dayStart <- as.character(as.Date(unique(world$variable))-7)
+    plotTitle <- paste0('Trend of ', plotMetric,
+                        '\nfrom ', dayStart, ' to ', dayStop,
+                        normalised)
+    return(plotTitle)
+  }
+  
+  mapGBQ <- function(world, plotMetric){
+    dayStop <- unique(world$variable)
+    dayStart <- as.character(as.Date(unique(world$variable))-7)
+    
+    plotTitle <- paste0('Cumulative number of ', plotMetric,
+                        ' from ', dayStart, ' to ', dayStop,
+                        '\nnormalised every 100,000 individuals')
+    return(plotTitle)
+  }
+  
+  mapGBQ_binary <- function(world){
+    dayStop <- unique(world$variable)
+    dayStart <- as.character(as.Date(unique(world$variable))-7)
+    GBth <- 20
+    plotTitle <- paste0('GB quarantine limit = ', GBth)
+  }
+  
+  res <- switch (plotType,
+                 'doMapTrend_normalise' = datesRange(world, plotMetric, NULL),
+                 'doMapTrend' = datesRange(world, plotMetric, '\nnormalised every 100,000 individuals'),
+                 'doMapDataRate_raw' = paste0('New ', plotMetric, ' on day ', unique(world$variable)),
+                 'doMapDataRate_normalised' = paste0('New ', plotMetric, ' on day ',
+                                                     unique(world$variable),
+                                                     '\nnormalised every 100,000 individuals'),
+                 'doMapGBQuarantine_binary' = mapGBQ_binary(world),
+                 'doMapGBQuarantine' = mapGBQ(world, plotMetric),
+                 'doMapData_raw' = paste0(plotMetric, ' on day ', unique(world$variable)),
+                 'doMapData_normalised' = paste0(plotMetric, ' on day ',
+                                                 unique(world$variable),
+                                                 '\nnormalised every 100,000 individuals')
+  )
+  return(res)
+}
+
 #' @title plotMap
 #' @description single entry point to plot map
 #' @param plotData (covidData): S4 object

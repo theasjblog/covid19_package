@@ -82,26 +82,17 @@ getMapGBQuarantine_binary <- function(plotData, filterByCountry = NULL,
 doMapGBQuarantine_binary <- function(plotData, filterByCountry = NULL,
                               plotMetric = 'cases',
                               chosenDay = NULL){
-  world <- getMapGBQuarantine_binary(plotData, filterByCountry, plotMetric, chosenDay)
-  dayStop <- unique(world$variable)
-  dayStart <- as.character(as.Date(unique(world$variable))-7)
-  GBth <- 20
-  plotTitle <- paste0('GB quarantine limit = ', GBth)
+  world <- getMapGBQuarantine_binary(plotData, filterByCountry,
+                                     plotMetric, chosenDay)
   
-  g <- ggplot(data = world) +
-    geom_sf(aes(fill = value)) +
-    scale_fill_gradient2(low = "blue",
-                         mid = "white",
-                         high = "red",
-                         midpoint = GBth,
-                         limits = c(GBth-10, GBth+10))+
-    theme(legend.position = "none")+
-    ggtitle(plotTitle) +
-    theme_bw() +
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_rect(fill = 'aliceblue'),
-          axis.text.x = element_blank(), axis.text.y = element_blank(),
-          axis.ticks = element_blank()) +
-    labs(fill = "")
+  g <- tm_shape(world) +
+    tm_borders() +
+    tm_fill('value', title = '',
+            breaks = c(-Inf, 20, Inf),
+            palette = c("blue", "red"))
+  if(!is.null(filterByCountry)){
+    g <- g + tm_facets(by = "name_long")
+  }
+  
   return(g)
 }
