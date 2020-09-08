@@ -1,3 +1,71 @@
+#' @title getIdxChosenDay
+#' @description return the dataframe index for the chosen day
+#' @param chosenDay (numeric): the day to plot
+#' @param df (dataframe) JHU dataframe
+#' @return numeric index
+getIdxChosenDay <- function(df, chosenDay){
+  if(is.null(chosenDay)){
+    #subtracting to so that I can the right date by
+    #adding the min date to the idxChosenDay
+    idxChosenDay <- ncol(df)-1
+  } else {
+    idxChosenDay <- chosenDay
+  }
+  return(idxChosenDay)
+}
+
+#' @title getChosenDate
+#' @description return character form of the day to plot given as index
+#' @param idxChosenDay (numeric): index of he column with the name to covert to character date
+#' @return a character date
+getChosenDate <- function(df, idxchosenDay){
+  idx <- which(str_detect(colnames(df), 'X'))
+  dateMin <- min(getDates(colnames(df)[idx]))
+  chosenDate <- as.character(as.Date(dateMin)+idxchosenDay)
+  return(chosenDate)
+}
+
+#' @title sumCountriesDf
+#' @description summarise the rows of a JHU dataframe by country.
+#' @param df (dataframe) the JHU dataframe
+#' @param populationDf (dataframe) the population dataframe from the covidData object
+#' @return dataframe
+sumCountries <- function(df, populationDf){
+  df <- merge(df, populationDf, by='ID', all=TRUE)
+  idx <- which(!colnames(df) %in% colnames(populationDf))
+  b1 <- df %>% group_by(Country) %>% summarise_at(idx,sum, na.rm = TRUE)
+  b2 <- df %>% group_by(Country) %>% summarise_at('Population',sum, na.rm = TRUE)
+  df <- merge(b1, b2, by = 'Country', all = TRUE)
+  return(df)
+}
+
+#' @title normalizeByPop
+#' @description normalize data by populations
+#' @param idxChosenDay (numeric): index of he column with the name to covert to character date
+#' @return a dataframe
+normalizeByPop <- function(df){
+  idx <- which(str_detect(colnames(df), 'X.'))
+  df[,idx] <- df[,idx]*100e3/df$Population
+  return(df)
+}
+
+#' @title sumPast7
+#' @description normalize data by populations
+#' @param df (dataframe)
+#' @param idxchosenDay (numeric)
+#' @return a dataframe
+sumPast7 <- function(df, idxchosenDay){
+  pastWeek <- df[,seq(idxchosenDay-5, idxchosenDay+1)]
+  nameDay <- colnames(pastWeek)[7]
+  pastWeek <- rowSums(pastWeek)
+  df <- data.frame(Country = df$Country,
+                   X = pastWeek,
+                   Population <- df$Population)
+  colnames(df)[2] <- nameDay
+  return(df)
+}
+
+
 #' @title getMapTitle
 #' @description Get the map title. Used by the frontend app
 #' @param world (sf): results of getMap[...]()
@@ -82,10 +150,12 @@ getWorld <- function(plotData, filterByCountry = NULL,
                                                   plotMetric, chosenDay),
           'doMapDataRate_normalised' = getMapDataRate_normalised(plotData, filterByCountry, 
                                                                 plotMetric, chosenDay),
-          'doMapGBQuarantine_binary' = getMapGBQuarantine_binary(plotData, filterByCountry, 
-                                                                plotMetric, chosenDay),
-          'doMapGBQuarantine' = getMapGBQuarantine(plotData, filterByCountry, 
-                                                  plotMetric, chosenDay),
+          'doMapGBQuarantine_binary' = getMapGBQuarantine_binary(plotData = plotData,
+                                                                 filterByCountry = filterByCountry,
+                                                                 chosenDay = chosenDay),
+          'doMapGBQuarantine' = getMapGBQuarantine(plotData = plotData,
+                                                   filterByCountry = filterByCountry,
+                                                   chosenDay = chosenDay),
           'doMapData_raw' = getMapData_raw(plotData, filterByCountry, 
                                           plotMetric, chosenDay),
           'doMapData_normalised' = getMapData_normalised(plotData, filterByCountry, 

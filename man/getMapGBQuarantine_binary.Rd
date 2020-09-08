@@ -7,8 +7,8 @@
 getMapGBQuarantine_binary(
   plotData,
   filterByCountry = NULL,
-  plotMetric = "cases",
-  chosenDay = NULL
+  chosenDay = NULL,
+  ...
 )
 }
 \arguments{
@@ -17,9 +17,9 @@ getMapGBQuarantine_binary(
 \item{filterByCountry}{(character): The countries to plot in the map. If NULL all
 countries are included}
 
-\item{plotMetric}{(character) One of "cases", "deaths", "recovered"}
-
 \item{chosenDay}{(numeric): the day to plot}
+
+\item{...}{not used}
 }
 \value{
 data frame of cases, deaths and recovered
