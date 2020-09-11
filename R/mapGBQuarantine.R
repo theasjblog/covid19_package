@@ -10,8 +10,7 @@ getMapGBQuarantine <- function(plotData, filterByCountry = NULL,
                                       plotMetric = 'cases',
                                       chosenDay = NULL){
   
-  GBth <- 20
-  df <- slot(plotData, 'JHUData_diffRaw')
+  df <- slot(plotData, 'JHUData_diffSmooth')
   populationDf <- slot(plotData, 'populationDf')
   
   #convert the given index to the corresponding column index in the daraframe
@@ -47,9 +46,7 @@ getMapGBQuarantine <- function(plotData, filterByCountry = NULL,
                                       origin = 'country.name',
                                       destination = 'iso3c')
   world <- world %>% filter(gu_a3 %in% chosenCountriesiso3c)
-  #newData <- data.frame(plotValues = values,
-  #                      gu_a3 = chosenCountriesiso3c)
-  # potenital issue: newData has countries not in world
+  
   world <- merge(world, val, by  = 'gu_a3', all = TRUE)
   
   return(world)

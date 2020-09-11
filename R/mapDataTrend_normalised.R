@@ -10,49 +10,40 @@ getMapTrend_normalise <- function(plotData, filterByCountry = NULL,
                         plotMetric = 'cases',
                         chosenDay = NULL){
   
-  df <- slot(plotData, 'JHUData_diffRaw')
-  
-  if(is.null(chosenDay)){
-    #subtracting to so that I can the right date by
-    #adding the min date to the idxChosenDay
-    idxChosenDay <- ncol(df)-2
-  } else {
-    idxChosenDay <- chosenDay - 1
-  }
-  
-  idx <- which(str_detect(colnames(df), 'X'))
-  dateMin <- min(getDates(colnames(df)[idx]))
-  chosenDate <- as.character(as.Date(dateMin)+idxChosenDay)
-  
-  #get the country to plot
+  df <- slot(plotData, 'JHUData_diffSmooth')
   populationDf <- slot(plotData, 'populationDf')
+  
+  #convert the given index to the corresponding column index in the daraframe
+  idxchosenDay <- getIdxChosenDay(df, chosenDay)
+  #convert colnames  to date, used in the colnames of the returned results
+  chosenDate <- getChosenDate(df, idxchosenDay-1)
+  #get the country to plot
   if(is.null(filterByCountry)){
     filterByCountry <- as.character(unique(populationDf$Country))
   }
+  # re
   populationDf <- populationDf %>% 
     filter(Country %in% filterByCountry & type == plotMetric)
-  
+  # filter out the countries we do not map
   df <- df %>% filter(ID %in% populationDf$ID)
   # sum countries
-  df <- merge(df, populationDf, by='ID', all=TRUE)
-  sp <- split(df, df$Country)
-  sp <- lapply(sp, function(d){
-    idx <- which(str_detect(colnames(d), 'X'))
-    res <- colSums(d[,idx])
-    res <- median(diff(res[seq(idxChosenDay-5, idxChosenDay+1)]), na.rm = TRUE)
-    totoPop <- sum(d$Population, na.rm = TRUE)
-    res <- round(res*100e3/totoPop)
-    nameDay <- colnames(d)[idx]
-    nameDay <- nameDay[idxChosenDay+1]
-    res <- data.frame(X = round(res),
-                      Country = unique(d$Country))
-    colnames(res) <- c(nameDay, 'Country')
+  df <- sumCountries(df, populationDf)
+  
+  #normalize by population
+  df <- normalizeByPop(df)
+  
+  countriesAvailable <- df$Country
+  # trend
+  tf <- function(x, idxchosenDay){
+    res <- median(diff(as.numeric(x[seq(idxchosenDay-5, idxchosenDay+1)])),
+                  na.rm = TRUE)
     return(res)
-  })
-  df <- bind_rows(sp)
-  val <- melt(data = df, id.vars = c("Country"))
-  val$variable <- getDates(val$variable)
-  val <- val %>% filter(variable == chosenDate)
+  }
+  df <- apply(df, 1, tf, idxchosenDay)
+  val <- data.frame(Country = countriesAvailable,
+                    value = df,
+                    variable = chosenDate)
+  
   val$Country <- countrycode(val$Country,
                              origin = 'country.name',
                              destination = 'iso3c')
@@ -63,9 +54,7 @@ getMapTrend_normalise <- function(plotData, filterByCountry = NULL,
                                       origin = 'country.name',
                                       destination = 'iso3c')
   world <- world %>% filter(gu_a3 %in% chosenCountriesiso3c)
-  #newData <- data.frame(plotValues = values,
-  #                      gu_a3 = chosenCountriesiso3c)
-  # potenital issue: newData has countries not in world
+  
   world <- merge(world, val, by  = 'gu_a3', all = TRUE)
   
   return(world)

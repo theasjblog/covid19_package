@@ -10,7 +10,7 @@ getMapGBQuarantine_binary <- function(plotData, filterByCountry = NULL,
                                chosenDay = NULL, ...){
   plotMetric <- 'cases'
   GBth <- 20
-  df <- slot(plotData, 'JHUData_diffRaw')
+  df <- slot(plotData, 'JHUData_diffSmooth')
   populationDf <- slot(plotData, 'populationDf')
   
   #convert the given index to the corresponding column index in the daraframe

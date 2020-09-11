@@ -11,38 +11,24 @@ getMapData_raw <- function(plotData, filterByCountry = NULL,
                                    chosenDay = NULL){
   
   df <- slot(plotData, 'JHUData_smooth')
-  
-  if(is.null(chosenDay)){
-    #subtracting to so that I can the right date by
-    #adding the min date to the idxChosenDay
-    idxChosenDay <- ncol(df)-2
-  } else {
-    idxChosenDay <- chosenDay - 1
-  }
-  
-  idx <- which(str_detect(colnames(df), 'X'))
-  dateMin <- min(getDates(colnames(df)[idx]))
-  chosenDate <- as.character(as.Date(dateMin)+idxChosenDay)
-  
-  #get the country to plot
   populationDf <- slot(plotData, 'populationDf')
+  
+  #convert the given index to the corresponding column index in the daraframe
+  idxchosenDay <- getIdxChosenDay(df, chosenDay)
+  #convert colnames  to date, used in the colnames of the returned results
+  chosenDate <- getChosenDate(df, idxchosenDay-1)
+  #get the country to plot
   if(is.null(filterByCountry)){
     filterByCountry <- as.character(unique(populationDf$Country))
   }
+  # re
   populationDf <- populationDf %>% 
     filter(Country %in% filterByCountry & type == plotMetric)
-  
+  # filter out the countries we do not map
   df <- df %>% filter(ID %in% populationDf$ID)
   # sum countries
-  df <- merge(df, populationDf, by='ID', all=TRUE)
-  sp <- split(df, df$Country)
-  sp <- lapply(sp, function(d){
-    idx <- which(str_detect(colnames(d), 'X'))
-    res <- as.data.frame(t(round(colSums(d[,idx], na.rm = TRUE))))
-    res$Country <- unique(d$Country)
-    return(res)
-  })
-  df <- bind_rows(sp)
+  df <- sumCountries(df, populationDf)
+  
   val <- melt(data = df, id.vars = c("Country"))
   val$variable <- getDates(val$variable)
   val <- val %>% filter(variable == chosenDate)
@@ -56,9 +42,7 @@ getMapData_raw <- function(plotData, filterByCountry = NULL,
                                       origin = 'country.name',
                                       destination = 'iso3c')
   world <- world %>% filter(gu_a3 %in% chosenCountriesiso3c)
-  #newData <- data.frame(plotValues = values,
-  #                      gu_a3 = chosenCountriesiso3c)
-  # potenital issue: newData has countries not in world
+  
   world <- merge(world, val, by  = 'gu_a3', all = TRUE)
   
   return(world)
