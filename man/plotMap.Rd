@@ -4,31 +4,13 @@
 \alias{plotMap}
 \title{plotMap}
 \usage{
-plotMap(
-  world,
-  filterByCountry = NULL,
-  plotMetric = "cases",
-  chosenDay = NULL,
-  plotType
-)
+plotMap(world)
 }
 \arguments{
-\item{world}{(sf): S4 object}
-
-\item{filterByCountry}{(character): The countries to plot in the map. If NULL all
-countries are included}
-
-\item{plotMetric}{(character) One of "cases", "deaths", "recovered"}
-
-\item{chosenDay}{(numeric): the day to plot}
-
-\item{plotType}{(character): one of doMapTrend_normalise, doMapTrend,
-doMapDataRate_raw, doMapDataRate_normalised,
-doMapGBQuarantine_binary, doMapGBQuarantine, doMapData_raw,
-doMapData_normalised}
+\item{world}{(world): S4 object of class "worldMap"}
 }
 \value{
-data frame of cases, deaths and recovered
+tmap plot
 }
 \description{
 single entry point to plot map
