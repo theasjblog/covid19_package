@@ -55,9 +55,17 @@ prepareDataPlot <- function(dataObj, geographyFilter, typePlot, plotRate,
     })
     df <- bind_rows(res)
     df$Area <- geographyFilter
+    values <- melt(df, id.vars = 'Area')
+  } else {
+    df <- df %>% filter(ID %in% populationDf$ID)
+    values <- data.frame(variable = colnames(df)[colnames(df) != 'ID'],
+                         value = colSums(df[,colnames(df) != 'ID'],
+                                         na.rm = TRUE),
+                         Area = 'World'
+                         )
   }
   
-  values <- melt(df, id.vars = 'Area')
+  
   values$variable <- getDates(values$variable)
   
   if(scale == 'log'){
