@@ -5,6 +5,7 @@ allMaps <- function(df, populationDf, chosenDay, filterByCountry, plotMetric,
   idxchosenDay <- getIdxChosenDay(df, chosenDay)
   #convert colnames  to date, used in the colnames of the returned results
   chosenDate <- getChosenDate(df, idxchosenDay-1)
+  filterByCountryOriginal <- filterByCountry
   #get the country to plot
   if(is.null(filterByCountry)){
     filterByCountry <- as.character(unique(populationDf$Country))
@@ -61,7 +62,9 @@ allMaps <- function(df, populationDf, chosenDay, filterByCountry, plotMetric,
   res <- new('worldMap')
   
   slot(res, 'world') <- world
-  slot(res, 'filterByCountry') <- filterByCountry
+  if(!is.null(filterByCountryOriginal)){
+    slot(res, 'filterByCountry') <- filterByCountry
+  }
   if(!is.null(GBth)){
     slot(res, 'th') <- GBth
   }
