@@ -18,3 +18,15 @@ setClass('covidData',
                    populationDf = NULL,
                    keys = NULL)
 )
+
+#' @slot world sf
+#' @slot filterByCountry character
+#' @slot th numeric
+setClass('worldMap',
+         representation(world = 'sf',
+                        filterByCountry = 'character',
+                        th = 'numeric'),
+         prototype(world = NULL,
+                   filterByCountry = NULL,
+                   th = NULL)
+)

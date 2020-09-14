@@ -4,20 +4,9 @@
 \alias{getMapTitle}
 \title{getMapTitle}
 \usage{
-getMapTitle(
-  world,
-  filterByCountry = NULL,
-  plotMetric = "cases",
-  chosenDay = NULL,
-  plotType
-)
+getMapTitle(worldMap, plotMetric = "cases", chosenDay = NULL, plotType)
 }
 \arguments{
-\item{world}{(sf): results of getMap[...]()}
-
-\item{filterByCountry}{(character): The countries to plot in the map. If NULL all
-countries are included}
-
 \item{plotMetric}{(character) One of "cases", "deaths", "recovered"}
 
 \item{chosenDay}{(numeric): the day to plot}
@@ -26,6 +15,8 @@ countries are included}
 doMapDataRate_raw, doMapDataRate_normalised,
 doMapGBQuarantine_binary, doMapGBQuarantine, doMapData_raw,
 doMapData_normalised}
+
+\item{world}{(worldMap): S4 object of class worldMap}
 }
 \value{
 character string of the map title

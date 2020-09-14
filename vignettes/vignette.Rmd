@@ -119,37 +119,85 @@ plotAllMetrics(dataObj = newData, geographyFilter = c('Italy', 'China'),
 ## Map plots
 
 ```{r mapPlots}
-plotMap(plotData = newData, filterByCountry = c('Italy', 'Spain'), 
-                             plotMetric = 'cases',
-                             chosenDay = NULL, plotType = 'doMapTrend_normalise')
+world <- getWorld(plotData = newData,
+                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapTrend_normalise')
+plotMap(world)
+print(getMapTitle(world,
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapTrend_normalise'))
 
-plotMap(plotData = newData, filterByCountry = c('Italy', 'Spain'), 
-                             plotMetric = 'cases',
-                             chosenDay = NULL, plotType = 'doMapTrend')
+#################################
+world <- getWorld(plotData = newData,
+                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapTrend')
+plotMap(world)
+print(getMapTitle(world,
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapTrend'))
 
-plotMap(plotData = newData, filterByCountry = c('Italy', 'Spain'), 
-                             plotMetric = 'cases',
-                             chosenDay = NULL, plotType = 'doMapDataRate_raw')
+#################################
+world <- getWorld(plotData = newData,
+                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapDataRate_raw')
+plotMap(world)
+print(getMapTitle(world,
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapDataRate_raw'))
 
-plotMap(plotData = newData, filterByCountry = c('Italy', 'Spain'), 
-                             plotMetric = 'cases',
-                             chosenDay = NULL, plotType = 'doMapDataRate_normalised')
+#################################
+world <- getWorld(plotData = newData,
+                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapDataRate_normalised')
+plotMap(world)
+print(getMapTitle(world,
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapDataRate_normalised'))
 
-plotMap(plotData = newData, filterByCountry = c('Italy', 'Spain'), 
-                             plotMetric = 'cases',
-                             chosenDay = NULL, plotType = 'doMapGBQuarantine_binary')
+#################################
+world <- getWorld(plotData = newData,
+                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapGBQuarantine_binary')
+plotMap(world)
+print(getMapTitle(world,
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapGBQuarantine_binary'))
 
-plotMap(plotData = newData, filterByCountry = c('Italy', 'Spain'), 
-                             plotMetric = 'cases',
-                             chosenDay = NULL, plotType = 'doMapGBQuarantine')
+#################################
+world <- getWorld(plotData = newData,
+                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapGBQuarantine')
+plotMap(world)
+print(getMapTitle(world,
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapGBQuarantine'))
 
-plotMap(plotData = newData, filterByCountry = c('Italy', 'Spain'), 
-                             plotMetric = 'cases',
-                             chosenDay = NULL, plotType = 'doMapData_raw')
+#################################
+world <- getWorld(plotData = newData,
+                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapData_raw')
+plotMap(world)
+print(getMapTitle(world,
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapData_raw'))
 
-plotMap(plotData = newData, filterByCountry = c('Italy', 'Spain'), 
-                             plotMetric = 'cases',
-                             chosenDay = NULL, plotType = 'doMapData_normalised')
+#################################
+world <- getWorld(plotData = newData,
+                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapData_normalised')
+plotMap(world)
+print(getMapTitle(world,
+                        plotMetric = 'cases', chosenDay = NULL,
+                        plotType = 'doMapData_normalised'))
+
 
 ```
 
