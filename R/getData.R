@@ -211,3 +211,16 @@ getUS <- function(pathUS){
   
   return(USCases)
 }
+
+
+#' @title saveAllData
+#' @description save a fresh allData covid object as RData
+#' This is used in the app to refresh the stored data used to speed
+#' up app loading
+#' @return nothing
+#' @export
+saveAllData <- function(){
+  refreshJHU()
+  allData <- getJHU()
+  save(allData, 'allData.RData')
+}
