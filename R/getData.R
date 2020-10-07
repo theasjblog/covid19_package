@@ -222,5 +222,5 @@ getUS <- function(pathUS){
 saveAllData <- function(){
   refreshJHU()
   allData <- getJHU()
-  save(allData, 'allData.RData')
+  saveRDS(allData, 'allData.rds')
 }
