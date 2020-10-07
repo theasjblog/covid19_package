@@ -18,7 +18,6 @@
 #' @return data frame 
 #' @export
 getJHU <- function(){
-  refreshJHU()
   rawData <- assembleAllData()
   rawData <- getCovidDf(rawData)
   populationDf <- rawData$populationDf
@@ -79,13 +78,12 @@ getKeys <- function(populationDf){
 #' @title refreshJHU
 #' @description Download JHU data if no data or data older than 1 day is present
 #' @return Nothing
+#' @export
 refreshJHU <- function(){
   if (file.exists("JHUData-master.zip")){
-    if (as.Date(file.info("JHUData-master.zip")$atime) != Sys.Date()){
-      download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
-                    , destfile = "JHUData-master.zip")
-      unzip(zipfile = "JHUData-master.zip")
-    }
+    download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
+                  , destfile = "JHUData-master.zip")
+    unzip(zipfile = "JHUData-master.zip")
   } else {
     download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
                   , destfile = "JHUData-master.zip")
