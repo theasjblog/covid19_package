@@ -6,7 +6,7 @@ Author: Adrian Joseph
 Maintainer: Adrian Joseph <tequilacanaria@hotmail.it>
 Description: Visualiza COVID-19  data from JHU. Retrive, smooth and plot data.
 Imports: here, dplyr, ggplot2, zoo, countrycode, rnaturalearth, rnaturalearthdata,
-  rgeos, tidyr, methods, tmap, raster, reshape2, stringr
+  rgeos, tidyr, methods, tmap, raster, reshape2, stringr, rlang
 Suggests: knitr, rmarkdown, testthat
 VignetteBuilder: knitr
 License: GPL-3
