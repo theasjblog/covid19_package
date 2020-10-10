@@ -2,6 +2,7 @@
 
 export(assembleType)
 export(doPlot)
+export(getDates)
 export(getJHU)
 export(getMapTitle)
 export(getNewGADM)

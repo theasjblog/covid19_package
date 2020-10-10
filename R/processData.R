@@ -41,6 +41,7 @@ diffRawDf <- function(df){
 #' @description convert JHU dates to R dates
 #' @param jhuDates a vector of dates
 #' @return vector of dates
+#' @export
 getDates <- function(jhuDates){
   dates <- NULL
   for (i in jhuDates){
