@@ -8,7 +8,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#root.dir=here::here()
+library('ff')
 library('covid19Visualizer')
 library('kableExtra')
 ```
@@ -24,8 +24,10 @@ Data is provided by Johns Hopkins University and is obtained from <https://githu
 New data is obtained with (a network connection is required):
 
 ```{r getNewData}
-## do not run
 refreshJHU()
+fromDir <- here::here('vignettes', 'COVID-19-master')
+toDir <- here::here('COVID-19-master')
+moveF <- file.move(fromDir,toDir)
 newData <- getJHU()
 ```
 
