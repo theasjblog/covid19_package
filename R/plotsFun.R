@@ -110,11 +110,17 @@ doPlot <- function(dataObj, geographyFilter = NULL, typePlot = 'cases',
   
   xLabel <- "Date"
   
-  
-  
-  p <- ggplot(data = values, aes(x = as.Date(variable),
-                                 y = value,
-                                 group = Area)) +
+  values$variable <- as.Date(values$variable)
+  colnames(values)[colnames(values) == 'variable'] <- 'Date'
+  colnames(values)[colnames(values) == 'value'] <- typePlot
+  values$text <- paste0('Date: ', values$Date, '\n',
+                        'Area: ', values$Area, '\n',
+                        str_to_title(typePlot), ': ', round(values[[typePlot]], digits = 0))
+    
+  p <- ggplot(data = values, aes(x = Date,
+                                 y = .data[[typePlot]],
+                                 group = Area,
+                                 text = text)) +
     geom_line(aes(color = Area)) +
     labs(x = xLabel,
          y = paste0("# ", typePlot),
@@ -157,9 +163,18 @@ plotAllMetrics <- function(dataObj, geographyFilter = NULL,
                    rep('recovered', nrow(valuesRecovered)))
   values <- values %>% filter(!is.na(values))
   
-  p <- ggplot(data = values, aes(x = as.Date(variable),
+  values$variable <- as.Date(values$variable)
+  colnames(values)[colnames(values) == 'variable'] <- 'Date'
+  values$text <- paste0('Date: ', values$Date, '\n',
+                        'Area: ', values$Area, '\n',
+                        'Type: ', values$type, '\n',
+                        str_to_title(values$type), ': ',
+                        round(values$value, digits = 0))
+  
+  p <- ggplot(data = values, aes(x = Date,
                              y = value,
-                             group = type)) +
+                             group = type,
+                             text = text)) +
     geom_line(aes(color = type)) +
     labs(x = "Date",
          y = "#",
