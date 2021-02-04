@@ -17,3 +17,7 @@ vignettes/COVID-19-master/
 VaccineData-master.zip
 VaccineData-master/
 covid-19-data-master/
+testdb
+*.csv
+*.xlsx
+
