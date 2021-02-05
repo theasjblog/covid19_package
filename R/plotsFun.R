@@ -1,199 +1,116 @@
-#' @title prepareDataPlot
-#' @description prepare data to plot for a single typePlot
-#' @param dataObj covidData object
-#' @param geographyFilter the geography to plot. In the form of "Country, State, City".
-#' To see all available combinations use showGeographyFilter(dataObj)
-#' @param typePlot cases, deaths or recovered
-#' @param plotRate (logical) if to plot cumulative increase (FALSE) or rate (TRUE)
-#' @param smooth (logical) if to smooth the curve
-#' @param scale if to plot in linear or log scale
-#' @param normalizeByPop (logical), if true, report metric y 100K people
-#' @param plotLim Dates max an min limits for the plot
-prepareDataPlot <- function(dataObj, geographyFilter, typePlot, plotRate,
-                            smooth, scale, normalizeByPop, plotLim){
-  if (plotRate){
-    if (smooth){
-      df <- slot(dataObj, 'JHUData_diffSmooth')
-    } else {
-      df <- slot(dataObj, 'JHUData_diffRaw')
-    }
-  } else {
-    if (smooth){
-      df <- slot(dataObj, 'JHUData_smooth')
-    } else {
-      df <- slot(dataObj, 'JHUData_raw')
-    }
-  }
-  populationDf <- slot(dataObj, 'populationDf')
-  
-  #filter by type
-  populationDf <- populationDf %>% 
-    filter(type == typePlot)
-  
-  if(!is.null(geographyFilter)){
-    geographyFilterSp <- str_split(geographyFilter, ', ')
-    idx <- which(colnames(df) == 'ID')
-    res <- lapply(geographyFilterSp, function(d){
-      if(length(d) == 1){
-        tmp <- populationDf %>% filter(Country==d[1])
-      }
-      if(length(d) == 2){
-        tmp <- populationDf %>% filter(Country==d[1] & State==d[2])
-      }
-      if(length(d) == 3){
-        tmp <- populationDf %>% filter(Country==d[1] & State==d[2] & City==d[3])
-      }
-      tmpDf <- data.frame(df[df$ID %in% tmp$ID, -idx])
-      tmpDf <- colSums(tmpDf, na.rm = TRUE)
-      # extract population
-      populationArea <- sum(tmp$Population, na.rm = TRUE)
-      if(normalizeByPop){
-        tmpDf <- tmpDf*100e3/populationArea
-      }
-      tmpDf <- as.data.frame(as.list(tmpDf))
-      return(tmpDf)
-    })
-    df <- bind_rows(res)
-    df$Area <- geographyFilter
-    values <- melt(df, id.vars = 'Area')
-  } else {
-    df <- df %>% filter(ID %in% populationDf$ID)
-    values <- data.frame(variable = colnames(df)[colnames(df) != 'ID'],
-                         value = colSums(df[,colnames(df) != 'ID'],
-                                         na.rm = TRUE),
-                         Area = 'World'
-                         )
+#' @title getPlotData
+#' @description get plot data for the events plot
+#' @param events (data.frame) events dataframe
+#' @param population (data.frame) population dataframe
+#' @param normBy (character) name of the column to use in population
+#' @param multiplyFactor (numeric) positive integer
+#' @return events data frame ready for plot 
+getPlotData <- function(events, population, normBy=NULL, multiplyFactor = 1){
+  # fill nas
+  events <- fillNAs(events)
+  # add text for plotly
+  events$text <- paste0('Date: ', as.character(events$date), '\n',
+                        'Country: ', events$Country, '\n',
+                        str_to_title(events$variable), ': ', events$value)
+  # do we normalise?
+  if(!is.null(normBy)){
+    # normalise
+    events <- normaliseEvents(events, population,
+                              normBy, multiplyFactor)
+    # if we normalise, use that info as plot title
+    events$normalisation <- paste0('Normalized by: ', normBy,'*',multiplyFactor)
   }
   
-  
-  values$variable <- getDates(values$variable)
-  
-  if(scale == 'log'){
-    values$value <- log10(values$value)
-  }
-  
-  if (!is.null(plotLim)){
-    values$dateAsNum <- as.Date(values$variable)-min(as.Date(values$variable))
-    values <- values %>%
-      filter(dateAsNum >= plotLim[1])
-    values <- values %>%
-      filter(dateAsNum <= plotLim[2])
-    
-  }
-  
-  
-  return(values)
+  return(events)
 }
-
 
 #' @title doPlot
-#' @description plot data for a single country
-#' @param dataObj covidData object
-#' @param geographyFilter the geography to plot. In the form of "Country, State, City".
-#' To see all available combinations use showGeographyFilter(dataObj)
-#' @param typePlot cases, deaths or recovered
-#' @param plotRate (logical) if to plot cumulative increase (FALSE) or rate (TRUE)
-#' @param smooth (logical) if to smooth the curve
-#' @param scale if to plot in linear or log scale
-#' @param normalizeByPop (logical), if true, report metric y 100K people
-#' @param plotLim Dates max an min limits for the plot
-#' @export
-doPlot <- function(dataObj, geographyFilter = NULL, typePlot = 'cases',
-                   plotRate = FALSE, smooth = TRUE, scale = 'linear',
-                   normalizeByPop = FALSE,
-                   plotLim = NULL){
-  # add validation
-  values <- prepareDataPlot(dataObj = dataObj, geographyFilter = geographyFilter,
-                            typePlot = typePlot, plotRate = plotRate, smooth = smooth,
-                            scale = scale, normalizeByPop = normalizeByPop,
-                            plotLim = plotLim)
-  
-  xLabel <- "Date"
-  
-  values$variable <- as.Date(values$variable)
-  colnames(values)[colnames(values) == 'variable'] <- 'Date'
-  colnames(values)[colnames(values) == 'value'] <- typePlot
-  values$text <- paste0('Date: ', values$Date, '\n',
-                        'Area: ', values$Area, '\n',
-                        str_to_title(typePlot), ': ', round(values[[typePlot]], digits = 0))
-    
-  p <- ggplot(data = values, aes(x = Date,
-                                 y = .data[[typePlot]],
-                                 group = Area,
-                                 text = text)) +
-    geom_line(aes(color = Area)) +
-    labs(x = xLabel,
-         y = paste0("# ", typePlot),
-         title = toupper(typePlot)) +
+#' @description plot events data
+#' @param df (data.frame) events dataframe from getPlotData
+#' @return ggplot 
+doPlot <- function(df){
+  if ('normalisation' %in% colnames(df)){
+    myTitle <- unique(df$normalisation)
+  } else {
+    myTitle <- ''
+  }
+  p <- ggplot(df, aes(x = date,
+                      y = value,
+                      group = interaction(Country, variable),
+                      colour = interaction(Country, variable),
+                      text = text)) +
+    geom_line() +
+    labs(x = '',
+         y = '',
+         title = myTitle) +
     theme_minimal()
-  
   return(p)
-  
 }
 
-#' @title plotAllMetrics
-#' @description plot cases, deaths and recovered in a single plot
-#' @param dataObj covidData object
-#' @param geographyFilter the geography to plot. In the form of "Country, State, City".
-#' To see all available combinations use showGeographyFilter(dataObj)
-#' @param plotRate (logical) if to plot cumulative increase (FALSE) or rate (TRUE)
-#' @param smooth (logical) if to smooth the curve
-#' @param scale if to plot in linear or log scale
-#' @param normalizeByPop (logical), if true, report metric y 100K people
-#' @param plotLim Dates max an min limits for the plot
+#' @title eventsPlot
+#' @description plot events data
+#' @param events (data.frame) events dataframe
+#' @param population (data.frame) population dataframe
+#' @param normBy (character) name of the column to use in population
+#' @param multiplyFactor (numeric) positive integer
+#' @return ggplot 
 #' @export
-plotAllMetrics <- function(dataObj, geographyFilter = NULL,
-                           plotRate = FALSE, smooth = TRUE, scale = 'linear',
-                           normalizeByPop = FALSE, plotLim = NULL){
-  valuesCases <- prepareDataPlot(dataObj = dataObj, geographyFilter = geographyFilter,
-                                 plotRate = plotRate, smooth = smooth, scale = scale,
-                                 normalizeByPop = normalizeByPop, plotLim = plotLim,
-                                 typePlot = 'cases')
-  valuesDeaths <- prepareDataPlot(dataObj = dataObj, geographyFilter = geographyFilter,
-                                  plotRate = plotRate, smooth = smooth, scale = scale,
-                                  normalizeByPop = normalizeByPop, plotLim = plotLim,
-                                  typePlot = 'deaths')
-  valuesRecovered <- prepareDataPlot(dataObj = dataObj, geographyFilter = geographyFilter,
-                                     plotRate = plotRate, smooth = smooth, scale = scale,
-                                     normalizeByPop = normalizeByPop, plotLim = plotLim,
-                                     typePlot = 'recovered')
-  values <- bind_rows(valuesCases, valuesDeaths, valuesRecovered)
-  values$type <- c(rep('cases', nrow(valuesCases)),
-                   rep('deaths', nrow(valuesDeaths)),
-                   rep('recovered', nrow(valuesRecovered)))
-  values <- values %>% filter(!is.na(values))
+eventsPlot <- function(events, population, normBy=NULL, multiplyFactor = 1){
+  # prepare data
+  df <- getPlotData(events, population, normBy, multiplyFactor)
+  # get plot
+  p <- doPlot(df)
   
-  values$variable <- as.Date(values$variable)
-  colnames(values)[colnames(values) == 'variable'] <- 'Date'
-  values$text <- paste0('Date: ', values$Date, '\n',
-                        'Area: ', values$Area, '\n',
-                        'Type: ', values$type, '\n',
-                        str_to_title(values$type), ': ',
-                        round(values$value, digits = 0))
+  return(p)
+}
+
+#' @title populationForDisplay
+#' @description remove columns of all nas
+#' @param population (data.frame) population dataframe
+#' @return population data frame 
+#' @export
+populationForDisplay <- function(population){
+  population <- population[,colSums(is.na(population))<nrow(population)]
+  return(population)
+}
+
+#' @title populationPlot
+#' @description plot population data
+#' @param population (data.frame) population dataframe
+#' @param variables (character) vector of column names to plot
+#' @return ggplot 
+#' @export
+populationPlot <- function(population, variables){
+  # columns to keep
+  idx <- which(colnames(population) %in% c('Country',variables))
+  a <- population[,idx]
+  # long table
+  a <- melt(a, id='Country')
+  # the text to use in plotly tooltips
+  a$text <- paste0('Country: ', a$Country, '\n',
+                   a$variable, ': ', a$value)
+  # variables might have massively different ranges,
+  # for instance age vs population. To ensure everything
+  # is visible in the plot we normalise each variable
+  # in the range 0-1
+  a <- split(a, a$variable)
+  a <- lapply(a, function(d){
+    #normalize up to 1
+    d$value <- d$value/max(d$value)
+    return(d)
+  })
+  a <- bind_rows(a)
   
-  p <- ggplot(data = values, aes(x = Date,
-                             y = value,
-                             group = type,
-                             text = text)) +
-    geom_line(aes(color = type)) +
-    labs(x = "Date",
-         y = "#",
-         title = toupper(paste(geographyFilter, collapse = ' - '))) +
+  # the actual plot
+  p <- ggplot(data=a, aes(x=variable, y=value, fill=Country, text = text)) +
+    geom_bar(stat="identity", position=position_dodge()) +
+    labs(title = '') +
     theme_minimal() +
-    facet_grid(rows = vars(Area))
+    theme(axis.title.y=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          axis.title.x=element_blank(),
+          axis.text.x = element_text(size=8, angle=45))
   
   return(p)
 }
-
-#' @title getSummaryTable
-#' @description summary table for all data obtained from JHU
-#' @param df JHU data.frame
-#' @return a summary data.frame
-#' @export
-getSummaryTable <- function(df){
-  res <- data.frame(country = df$country,
-                    type = df$type,
-                    total = df[, ncol(df)-2])
-  return(res)
-}
-

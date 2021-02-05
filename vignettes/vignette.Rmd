@@ -1,7 +1,6 @@
 ---
 title: "covid19Visualizer"
 author: "Adrian Joseph"
-date: "3/29/2020"
 output: html_document
 ---
 
@@ -11,198 +10,86 @@ knitr::opts_chunk$set(echo = TRUE)
 library('ff')
 library('covid19Visualizer')
 library('kableExtra')
+library('DBI')
 ```
 
-#Introduction
+# Introduction
 
 Simple data visualizer for COVID-19 diffusion.
 
 ## Data
 
-Data is provided by Johns Hopkins University and is obtained from <https://github.com/CSSEGISandData/COVID-19>.
+### Database
 
-New data is obtained with (a network connection is required):
+Data is provided by `Our world in data` and is obtained from <https://covid.ourworldindata.org/data/owid-covid-data.xlsx>.
 
-```{r getNewData}
-refreshJHU()
-fromDir <- here::here('vignettes', 'COVID-19-master')
-toDir <- here::here('COVID-19-master')
-moveF <- file.move(fromDir,toDir)
-newData <- getJHU()
+New data is obtained with `updateDb()` (a network connection is required).
+
+We can explore the database using the `rsqlite`/`DBI` package'
+
+```{r exploreDb, warning=FALSE}
+# connec to the database
+con <- dbConnect(RSQLite::SQLite(), "testdb")
+
+# get tables
+dbListTables(con)
+
+# get fields in a table
+dbListFields(con, "events")
+
+# close database connection
+dbDisconnect(con)
 ```
 
-## Plot a single metric
+### Population data
 
-The data provide time series for total cases, deaths and recoveries.
+We can obtain country social-demographic information, such us population, average age, GDP etc.
 
-Each metric can be plotted for selected countries using:
-
-```{r doPlot}
-# cases
-doPlot(dataObj = newData, typePlot = 'cases',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
-
-# deaths
-doPlot(dataObj = newData, typePlot = 'deaths',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
-
-# recovered
-doPlot(dataObj = newData, typePlot = 'recovered',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
+```{r population, warning=FALSE}
+population <- getPopulationDb(c('Canada', 'Italy'))
 ```
 
-Each plot can be plotted in log10 scale:
-```{r doPlotLog}
-# cases
-doPlot(dataObj = newData, typePlot = 'cases',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'log', normalizeByPop = FALSE,
-       plotLim = NULL)
+### Events data
 
-# deaths
-doPlot(dataObj = newData, typePlot = 'deaths',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'log', normalizeByPop = FALSE,
-       plotLim = NULL)
+We can obtain country-wise COVID metrics such as cases, vaccinations, testing, etc.
 
-# recovered
-doPlot(dataObj = newData, typePlot = 'recovered',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'log', normalizeByPop = FALSE,
-       plotLim = NULL)
+```{r events, warning=FALSE}
+events <- getEventsDb(c('Canada', 'Italy'),
+                      c('total_cases',
+                        'total_vaccinations'))
 ```
 
-We can also plot the variation, rather than the raw numbers:
-```{r doPlotRate}
-# cases
-doPlot(dataObj = newData, typePlot = 'cases',
-       geographyFilter = c('Italy', 'China'), plotRate = TRUE,
-       smooth = TRUE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
+## Plots and tables
 
-# deaths
-doPlot(dataObj = newData, typePlot = 'deaths',
-       geographyFilter = c('Italy', 'China'), plotRate = TRUE,
-       smooth = TRUE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
+### Plot events
 
-# recovered
-doPlot(dataObj = newData, typePlot = 'recovered',
-       geographyFilter = c('Italy', 'China'), plotRate = TRUE,
-       smooth = TRUE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
+Plot normalising the data by country population. Plot will be number of cases and vaccaination every 100 inhabitants.
+
+```{r plotEvents, warning=FALSE}
+p <- eventsPlot(events, population, 'population', 100)
+p
+#ggplotly(p, tooltip = 'text')
 ```
 
-## Plot all metrics for selected countires
+### Plot population
 
-```{r plotAllMetrics}
-# linear
-plotAllMetrics(dataObj = newData, geographyFilter = c('Italy', 'China'),
-               plotRate = FALSE, smooth = TRUE, scale = 'linear',
-               normalizeByPop = FALSE, plotLim = NULL)
+This plot does not have y axis because metrics are normalised between 0 and 1 so that they can be visualised even when massively different (i.e. population and age). 
+It is advised to display the plot using plotly: `ggplotly(p, tooltip = 'text')` to get more information from the tooltip.
 
-# log
-plotAllMetrics(dataObj = newData, geographyFilter = c('Italy', 'China'),
-               plotRate = FALSE, smooth = TRUE, scale = 'log',
-               normalizeByPop = FALSE, plotLim = NULL)
+```{r plotPopulation, warning=FALSE}
+p <- populationPlot(population,
+                    c('aged_65_older',
+                      'aged_70_older',
+                      'population'))
+p
+#ggplotly(p, tooltip = 'text')
 ```
 
-And the rate:
+### Population data
 
-```{r plotAllMetricsRate}
-plotAllMetrics(dataObj = newData, geographyFilter = c('Italy', 'China'),
-               plotRate = TRUE, smooth = TRUE, scale = 'linear',
-               normalizeByPop = FALSE, plotLim = NULL)
+```{r populationData, warning=FALSE}
+df <- populationForDisplay(population)
+kableExtra::kable(df)
 ```
 
-## Map plots
-
-```{r mapPlots}
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapTrend_normalise')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapTrend_normalise'))
-
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapTrend')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapTrend'))
-
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapDataRate_raw')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapDataRate_raw'))
-
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapDataRate_normalised')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapDataRate_normalised'))
-
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapGBQuarantine_binary')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapGBQuarantine_binary'))
-
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapGBQuarantine')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapGBQuarantine'))
-
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapData_raw')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapData_raw'))
-
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapData_normalised')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapData_normalised'))
-
-
-```
-
+Last update `r Sys.Date()`.

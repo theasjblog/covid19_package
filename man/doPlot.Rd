@@ -4,35 +4,14 @@
 \alias{doPlot}
 \title{doPlot}
 \usage{
-doPlot(
-  dataObj,
-  geographyFilter = NULL,
-  typePlot = "cases",
-  plotRate = FALSE,
-  smooth = TRUE,
-  scale = "linear",
-  normalizeByPop = FALSE,
-  plotLim = NULL
-)
+doPlot(df)
 }
 \arguments{
-\item{dataObj}{covidData object}
-
-\item{geographyFilter}{the geography to plot. In the form of "Country, State, City".
-To see all available combinations use showGeographyFilter(dataObj)}
-
-\item{typePlot}{cases, deaths or recovered}
-
-\item{plotRate}{(logical) if to plot cumulative increase (FALSE) or rate (TRUE)}
-
-\item{smooth}{(logical) if to smooth the curve}
-
-\item{scale}{if to plot in linear or log scale}
-
-\item{normalizeByPop}{(logical), if true, report metric y 100K people}
-
-\item{plotLim}{Dates max an min limits for the plot}
+\item{df}{(data.frame) events dataframe from getPlotData}
+}
+\value{
+ggplot
 }
 \description{
-plot data for a single country
+plot events data
 }

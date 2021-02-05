@@ -12,215 +12,252 @@
 #' @import raster
 #' @import reshape2
 #' @import tmap
+#' @import data.table
+#' @import DBI
+#' @import readxl
+#' @import ggplot2
 
-#' @title getJHU
-#' @description create full data for the visualizer form JHU data
+#' @title getAllData
+#' @description download data from 'https://covid.ourworldindata.org/data/owid-covid-data.xlsx'
+#' and import it as a dataframe 
 #' @return data frame 
-#' @export
-getJHU <- function(){
-  rawData <- assembleAllData()
-  rawData <- getCovidDf(rawData)
-  populationDf <- rawData$populationDf
-  keys <- rawData$keys
-  rawData <- rawData$dataDf
-  
-  idx <- which(colnames(rawData) != 'ID')
-  smoothData <- cbind(data.frame(ID = rawData$ID), smoothDf(rawData[, idx]))
-  diffRaw <- cbind(data.frame(ID = rawData$ID), diffRawDf(rawData[, idx]))
-  diffSmooth <- cbind(data.frame(ID = rawData$ID), diffSmoothDf(rawData[, idx]))
-  
-  fullSet <- new('covidData')
-  slot(fullSet, 'JHUData_raw') <- rawData
-  slot(fullSet, 'JHUData_smooth') <- smoothData
-  slot(fullSet, 'JHUData_diffRaw') <- diffRaw
-  slot(fullSet, 'JHUData_diffSmooth') <- diffSmooth
-  slot(fullSet, 'populationDf') <- populationDf
-  slot(fullSet, 'keys') <- keys
-  return(fullSet)
+getAllData <- function(){
+  # download pre-curated data
+  download.file(url='https://covid.ourworldindata.org/data/owid-covid-data.xlsx',
+                destfile='owid-covid-data.xlsx', mode = 'wb')
+  # read the file
+  allData <- read_excel("owid-covid-data.xlsx",
+                        col_types = c("text", "text", "text",
+                                      "text", "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "text", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric",
+                                      "numeric", "numeric", "numeric"))
+  # tidy up
+  colnames(allData)[colnames(allData)=='location'] <- 'Country'
+  allData$date <- as.character(allData$date)
+  return(allData)
 }
 
-#' @title getCovidDf
-#' @description create a covidDf object
-#' @param df (data.frame) the data frame to convert to a list
-#' @return list with keys, populationDf and dataDf
-getCovidDf <- function(df){
-  idx <- which(str_detect(colnames(df), 'X.'))[1]
-  populationDf <- df[, seq(1, idx-1)]
-  dataDf <- df[, seq(idx, ncol(df))]
-  populationDf$ID <- seq(1, nrow(populationDf))
-  dataDf$ID <- seq(1, nrow(dataDf))
-  
-  keys <- getKeys(populationDf)
-  
-  return(list(keys = keys,
-              dataDf = dataDf,
-              populationDf = populationDf))
-  
-}
-
-#' @title getKeys
-#' @description Get all the possible keys for country/state/city
-#' @param populationDf (data.frame) the populationDf of the covidData object
-#' @return character vector
-getKeys <- function(populationDf){
-  popCountry <- unique(populationDf$Country)
-  popState <- populationDf %>% filter(!is.na(State))
-  popState <- unique(paste(popState$Country, popState$State, sep = ', '))
-  
-  popCity <- populationDf %>% filter(!is.na(State)) %>% filter(!is.na(City))
-  popCity <- unique(paste(popCity$Country, popCity$State, popCity$City, sep = ', '))
-  
-  keys <- sort(c(popCountry, popState, popCity))
-  
-  return(keys)
-}
-
-#' @title refreshJHU
-#' @description Download JHU data if no data or data older than 1 day is present
-#' @return Nothing
-#' @export
-refreshJHU <- function(){
-  if (file.exists("JHUData-master.zip")){
-    download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
-                  , destfile = "JHUData-master.zip")
-    unzip(zipfile = "JHUData-master.zip")
-  } else {
-    download.file(url = "https://github.com/CSSEGISandData/COVID-19/archive/master.zip"
-                  , destfile = "JHUData-master.zip")
-    unzip(zipfile = "JHUData-master.zip")
-  }
-}
-
-#' @title assembleType
-#' @description Create a dataframe for one of the COVID variables: cases, deaths or recovered
-#' @param type (character) One of "cases", "deaths" or "recovered"
+#' @title getPopulation
+#' @description prepare the population table for the database 
+#' @param allData (dataframe) obtained from getAllData()
 #' @return data frame 
-#' @export
-assembleType <- function(type){
-  if(type == 'cases'){
-    pathGlobal <- 'time_series_covid19_confirmed_global.csv'
-    pathUS <- 'time_series_covid19_confirmed_US.csv'
-  } else if (type == 'deaths'){
-    pathGlobal <- 'time_series_covid19_deaths_global.csv'
-    pathUS <- 'time_series_covid19_deaths_US.csv'
-  } else if (type == 'recovered'){
-    pathGlobal <- 'time_series_covid19_recovered_global.csv'
-  }
+getPopulation <- function(allData){
+  # select column with country metrics that do not change
+  # with the time series
+  populationData <- allData %>%
+    select(Country,
+           population,
+           population_density,
+           median_age,
+           aged_65_older,
+           aged_70_older,
+           gdp_per_capita,
+           extreme_poverty,
+           cardiovasc_death_rate,
+           diabetes_prevalence,
+           female_smokers,
+           male_smokers,
+           handwashing_facilities,
+           hospital_beds_per_thousand,
+           life_expectancy,
+           human_development_index)
   
-  popData <- getPopData()
-  globalData <- getGlobal(pathGlobal)
-  if(type != 'recovered'){
-    USData <- getUS(pathUS)
-    allData <- suppressWarnings(bind_rows(USData, globalData))
-  } else {
-    allData <- globalData
-    allData <- cbind(data.frame(City = rep(NA, nrow(allData))),
-                         allData)
-    allData$City <- as.character(NA)
-  }
+  # remove duplicates
+  populationData <- split(populationData, populationData$Country)
+  populationData <- lapply(populationData, function(d){
+    d <- d %>% distinct()
+    d
+  })
+  populationData <- bind_rows(populationData)
   
-  if('Population' %in% colnames(allData)){
-    idx <- which(colnames(allData) != 'Population')
-    allData <- allData[, idx]
-  }
-  
-  fullDataset <- full_join(popData, allData)
-  fullDataset <- fullDataset[complete.cases(fullDataset[ , seq(5,ncol(fullDataset))]),]
-  fullDataset <- cbind(data.frame(type = rep(type, nrow(fullDataset))),
-                       fullDataset)
-  
-  return(fullDataset)
+  return(populationData)
 }
 
-#' @title assembleAllData
-#' @description create full raw data for cases/recovered/death
+#' @title getEvents
+#' @description prepare the events table for the database 
+#' @param allData (dataframe) obtained from getAllData()
 #' @return data frame 
-assembleAllData <- function(){
-  cases <- assembleType('cases')
-  deaths <- assembleType('deaths')
-  recovered <- assembleType('recovered')
-  fullDataset <- suppressWarnings(bind_rows(cases, deaths))
-  fullDataset <- suppressWarnings(bind_rows(fullDataset, recovered))
-  fullDataset$Country[fullDataset$Country == 'US'] <- 'United States of America'
+getEvents <- function(allData){
+  # select column with time-related events
+  eventsData <- allData %>%
+    select(Country,
+           date,
+           total_cases,
+           new_cases,
+           new_cases_smoothed,
+           total_deaths,
+           new_deaths,
+           new_deaths_smoothed,
+           reproduction_rate,
+           icu_patients,
+           hosp_patients,
+           weekly_icu_admissions,
+           weekly_hosp_admissions,
+           total_tests,
+           new_tests,
+           new_tests_smoothed,
+           positive_rate,
+           tests_per_case,
+           tests_units,
+           total_vaccinations,
+           people_vaccinated,
+           people_fully_vaccinated,
+           new_vaccinations,
+           new_vaccinations_smoothed)
   
-  return(fullDataset)
-}
-
-#' @title getpopData
-#' @description get the population data
-#' @return data frame 
-getPopData <- function(){
-  popData <- suppressWarnings(read.csv(here::here('COVID-19-master',
-                                                  'csse_covid_19_data',
-                                                  'UID_ISO_FIPS_LookUp_Table.csv')))
-  popData <- popData[, colnames(popData) %in% c('Admin2',
-                                                'Province_State',
-                                                'Country_Region',
-                                                'Population')]
-  colnames(popData)[colnames(popData) == 'Admin2'] <- 'City'
-  colnames(popData)[colnames(popData) == 'Province_State'] <- 'State'
-  colnames(popData)[colnames(popData) == 'Country_Region'] <- 'Country'
-  popData$City <- as.character(popData$City)
-  popData$State <- as.character(popData$State)
-  popData$Country <- as.character(popData$Country)
-  popData$City[popData$City == ''] <- NA
-  popData$State[popData$State == ''] <- NA
+  # make the table long
+  eventsData <- melt(eventsData, id=seq(1,2),
+                     measure=seq(3,ncol(eventsData)))
   
-  return(popData)
-}
-
-
-#' @title getGlobal
-#' @description get the global data
-#' @param pathGlobal (character) the path to where the global data is
-#' @return data frame 
-getGlobal <- function(pathGlobal){
-  globalCases <- suppressWarnings(read.csv(here::here('COVID-19-master',
-                                                      'csse_covid_19_data',
-                                                      'csse_covid_19_time_series',
-                                                      pathGlobal)))
-  colnames(globalCases)[colnames(globalCases) == 'Country.Region'] <- 'Country'
-  colnames(globalCases)[colnames(globalCases) == 'Province.State'] <- 'State'
-  globalCases <- globalCases[, !colnames(globalCases) %in% c('Lat', 'Long')]
-  globalCases <- globalCases %>% filter (Country != 'US')
-  globalCases$State <- as.character(globalCases$State)
-  globalCases$Country <- as.character(globalCases$Country)
-  globalCases$State[globalCases$State ==''] <- NA
-  
-  return(globalCases)
-}
-
-#' @title getUS
-#' @description get the US data
-#' @param pathGlobal (character) the path to where the US data is
-#' @return data frame 
-getUS <- function(pathUS){
-  USCases <- suppressWarnings(read.csv(here::here('COVID-19-master',
-                                                  'csse_covid_19_data',
-                                                  'csse_covid_19_time_series',
-                                                  pathUS)))
-  colnames(USCases)[colnames(USCases) == 'Admin2'] <- 'City'
-  colnames(USCases)[colnames(USCases) == 'Province_State'] <- 'State'
-  colnames(USCases)[colnames(USCases) == 'Country_Region'] <- 'Country'
-  USCases <- USCases[, !colnames(USCases) %in% c('UID', 'iso2', 'iso3',
-                                                 'code3', 'FIPS', 'Lat', 'Long_',
-                                                 'Combined_Key')]
-  USCases$City <- as.character(USCases$City)
-  USCases$State <- as.character(USCases$State)
-  USCases$Country <- as.character(USCases$Country)
-  
-  return(USCases)
+  return(eventsData)
 }
 
 
-#' @title saveAllData
-#' @description save a fresh allData covid object as RData
-#' This is used in the app to refresh the stored data used to speed
-#' up app loading
-#' @return nothing
-#' @export
-saveAllData <- function(){
-  refreshJHU()
-  allData <- getJHU()
-  saveRDS(allData, 'allData.rds')
+#' @title updateDb
+#' @description fetch new data from 'https://covid.ourworldindata.org/data/owid-covid-data.xlsx'
+#' and update the database
+#' @return nothing 
+#' @export 
+updateDb <- function(){
+  # get the data from the web
+  allData <- getAllData()
+  # get population data
+  populationData <- getPopulation(allData)
+  # get events data
+  eventsData <- getEvents(allData)
+  # connect to the database
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  # add to the database the population data
+  dbWriteTable(con, "population",
+               populationData, overwrite = TRUE)
+  # add to the database the events data
+  dbWriteTable(con, "events",
+               eventsData, overwrite = TRUE)
+  # close database connection
+  dbDisconnect(con)
+}
+
+#' @title getEventsDb
+#' @description retrive events from the database
+#' @param countries (character) vector of countries to retrive
+#' @param metrics (character) vector of metrics to retrive
+#' @return events data frame 
+#' @export 
+getEventsDb <- function(countries, metrics){
+  # connect to the database
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  # query string
+  sqltxt <- sprintf("SELECT * FROM events WHERE Country IN('%s') AND variable IN('%s')",
+                    paste(countries, collapse = "','"),
+                    paste(metrics, collapse = "','"))
+  # get results from database
+  res <- dbSendQuery(con, sqltxt)
+  res <- dbFetch(res)
+  # set column type
+  res$date <- as.Date(res$date)
+  res$value <- as.numeric(res$value)
+  # disconnect from database
+  dbDisconnect(con)
+  
+  return(res)
+}
+
+#' @title getPopulationDb
+#' @description retrive population data from the database
+#' @param countries (character) vector of countries to retrive
+#' @return population data frame 
+#' @export 
+getPopulationDb <- function(countries){
+  # connect to the database
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  # query string
+  sqltxt <- sprintf("SELECT * FROM population WHERE Country IN('%s')",
+                    paste(countries, collapse = "','"))
+  # get results from database
+  res <- dbSendQuery(con, sqltxt)
+  res <- dbFetch(res)
+  # close connection
+  dbDisconnect(con)
+  
+  return(res)
+}
+
+#' @title fillNAs
+#' @description replace NAs in numerical columns. Used with the events data.frame. NAS
+#' are replacing using zoo::na.approx. Leading NAs are replaced
+#' with 0s, trailing NAs are replaced with the last non-NA value.
+#' @param df (data.frame) dataframe
+#' @return population data frame 
+fillNAs <- function(df){
+  # make sure that the df is ordered by date
+  df <- df[order(df$date),]
+  # split by contry
+  sp <- split(df, df$Country)
+  res <- lapply(sp, function(d){
+    # split by variable
+    spInt <- split(d, d$variable)
+    resInt <- lapply(spInt, function(dInt){
+      # replace inner NAs
+      newVal <- na.approx(dInt$value, na.rm=FALSE)
+      # check if we stll have nas
+      idx <- which(!is.na(newVal))
+      if(idx[1]!=1){
+        # replace leading nas
+        newVal[seq(1,idx[1])] <- 0
+      }
+      if(idx[length(idx)]!=nrow(dInt)){
+        # replace trailing nas
+        newVal[idx[length(idx)]+1] <- newVal[idx[length(idx)]]
+      }
+      dInt$value <- newVal
+      return(dInt)
+    })
+    resInt <- bind_rows(resInt)
+    return(resInt)
+  })
+  res <- bind_rows(res)
+  
+  return(res)
+}
+
+#' @title normaliseEvents
+#' @description divide the value in the events by the specified
+#' normBy and multiply by a factor. For instance to normalise the data
+#' by every 100 inhabitants, set normBy='population' and
+#' multiplyFactor=100
+#' @param events (data.frame) events dataframe
+#' @param population (data.frame) population dataframe
+#' @param normBy (character) name of the column to use in population
+#' @param multiplyFactor (numeric) positive integer
+#' @return normalised events data.frame
+normaliseEvents <- function(events, population, normBy, multiplyFactor = 1){
+  # split by country
+  sp <- split(events, events$Country)
+  res <- lapply(sp, function(d){
+    # get country
+    thisCountry <- unique(d$Country)
+    # get normalization value
+    thisNormVal <- population[[normBy]][population$Country==thisCountry]
+    # normalise
+    d$value <- multiplyFactor*d$value/thisNormVal
+    return(d)
+  })
+  res <- bind_rows(res)
+  
+  return(res)
 }
