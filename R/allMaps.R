@@ -62,7 +62,7 @@ getEventsMapDb <- function(countries, metric, date,
 getAvailableCountries <- function(){
   # connect to the database
   con <- dbConnect(RSQLite::SQLite(), "testdb")
-  sqltxt <- "SELECT * FROM mappable"
+  sqltxt <- "SELECT * FROM groups"
   # get results from database
   countries <- dbSendQuery(con, sqltxt)
   countries <- dbFetch(countries)
