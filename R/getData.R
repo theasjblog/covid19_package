@@ -91,7 +91,7 @@ getGroups <- function(df){
   res <- res[,-which(colnames(res)=='cols')]
   we <- res %>% dplyr::select(Country, iso3) %>%
     distinct()
-  we$group <- 'World'
+  we$groups <- 'World'
   res <- bind_rows(res, we)
   
   return(res)
