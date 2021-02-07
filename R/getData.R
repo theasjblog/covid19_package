@@ -15,7 +15,6 @@
 #' @import data.table
 #' @import DBI
 #' @import readxl
-#' @import ggplot2
 
 #' @title getAllData
 #' @description download data from 'https://covid.ourworldindata.org/data/owid-covid-data.xlsx'
@@ -367,6 +366,31 @@ normaliseEvents <- function(events, population, normBy, multiplyFactor = 1){
     return(d)
   })
   res <- bind_rows(res)
+  
+  return(res)
+}
+
+#' @title getOptions
+#' @description get all the unique values in the specified
+#' field of the specified table
+#' @param table (character) the name of the database table
+#' @param field (character) the name of the field in the table
+#' @return a character vector
+#' @export
+getOptions <- function(table, field){
+  # connect to the database
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  
+  # query string
+  sqltxt <- sprintf("SELECT DISTINCT %s FROM %s",
+                    field,
+                    table)
+  # get results from database
+  res <- dbSendQuery(con, sqltxt)
+  res <- dbFetch(res)
+  res <- res[,1]
+  # close connection
+  dbDisconnect(con)
   
   return(res)
 }
