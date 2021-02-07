@@ -49,10 +49,53 @@ getAllData <- function(){
   # tidy up
   colnames(allData)[colnames(allData)=='location'] <- 'Country'
   allData$Country[allData$Country=="Cote d'Ivoire"] <- 'Ivory Coast'
+  allData$Country[allData$Country=='European Union'] <- 'Europe'
   allData$date <- as.character(allData$date)
   allData <- as.data.frame(allData)
   
   return(allData)
+}
+
+#' @title getGroups
+#' @description get groups of countries, i.e. europe vs oceania etc
+#' @param df (data.frame) from getAllData()
+#' @return data frame
+getGroups <- function(df){
+  world <- ne_countries(scale = "medium", returnclass = "sf")
+  nonStandard <- c("International","Micronesia (country)",
+                   "Timor", 'Kosovo')
+  areGroups <- c('Africa', 'Asia', 'Europe', 'North America', 
+                 'Oceania', 'South America', 'World')
+  df <- df %>% filter(!Country %in% nonStandard)
+  
+  allCountries <- unique(df$Country[!df$Country %in% areGroups])
+  iso3 <- countrycode(allCountries,
+                      origin = 'country.name',
+                      destination = 'iso3c')
+  
+  
+  idx <- which(!is.na(iso3) & iso3 %in% world$gu_a3)
+  allCountries <- allCountries[idx]
+  iso3 <- iso3[idx]
+  
+  allCountries <- data.frame(Country = allCountries,
+                             iso3 = iso3)
+  
+  world <- data.frame(iso3 = world$gu_a3,
+                      continent = world$continent)
+  res <- full_join(allCountries, world, by = 'iso3')
+  res <- res %>%
+    tidyr::pivot_longer(
+      cols = c('continent'),
+      names_to = "cols",
+      values_to = "groups")
+  res <- res[,-which(colnames(res)=='cols')]
+  we <- res %>% dplyr::select(Country, iso3) %>%
+    distinct()
+  we$group <- 'World'
+  res <- bind_rows(res, we)
+  
+  return(res)
 }
 
 #' @title getgetAreasForMapPopulation
@@ -163,8 +206,8 @@ getEvents <- function(allData){
 updateDb <- function(){
   # get the data from the web
   allData <- getAllData()
-  # get the countries that can be mapped
-  mappableCountries <- getAreasForMap(allData$Country)
+  # get groups
+  groups <- getGroups(allData)
   # get population data
   populationData <- getPopulation(allData)
   # get events data
@@ -174,8 +217,8 @@ updateDb <- function(){
   # connect to the database
   con <- dbConnect(RSQLite::SQLite(), "testdb")
   # add to the database the mappable countries
-  dbWriteTable(con, "mappable",
-               mappableCountries, overwrite = TRUE)
+  dbWriteTable(con, "groups",
+               groups, overwrite = TRUE)
   # add to the database the population data
   dbWriteTable(con, "population",
                populationData, overwrite = TRUE)
@@ -219,13 +262,7 @@ getEventsDb <- function(countries, metrics){
 getPopulationDb <- function(countries){
   # connect to the database
   con <- dbConnect(RSQLite::SQLite(), "testdb")
-  if(is.null(countries)){
-    sqltxt <- "SELECT DISTINCT Country FROM population"
-    # get results from database
-    countries <- dbSendQuery(con, sqltxt)
-    countries <- dbFetch(countries)$Country
     
-  }
   # query string
   sqltxt <- sprintf("SELECT * FROM population WHERE Country IN('%s')",
                     paste(countries, collapse = "','"))
@@ -236,6 +273,26 @@ getPopulationDb <- function(countries){
   dbDisconnect(con)
   
   return(res)
+}
+
+
+#' @title getCountriesFromGroups
+#' @description map groups to countries
+#' @param groups (character) vector of groups to retrive
+#' @return data frame
+#' @export
+getCountriesFromGroups <- function(groups){
+  # connect to the database
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  sqltxt <- sprintf("SELECT * FROM groups WHERE groups IN('%s')",
+                    paste0(groups, collapse = "','"))
+  # get results from database
+  countries <- dbSendQuery(con, sqltxt)
+  countries <- dbFetch(countries)
+  # close connection
+  dbDisconnect(con)
+  
+  return(countries)
 }
 
 #' @title fillNAs

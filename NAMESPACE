@@ -2,6 +2,7 @@
 
 export(doMap)
 export(eventsPlot)
+export(getCountriesFromGroups)
 export(getEventsDb)
 export(getEventsMapDb)
 export(getPopulationDb)
