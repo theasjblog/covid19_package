@@ -11,6 +11,7 @@ library('ff')
 library('covid19Visualizer')
 library('kableExtra')
 library('DBI')
+library('here')
 ```
 
 # Introduction
@@ -90,6 +91,31 @@ p
 ```{r populationData, warning=FALSE}
 df <- populationForDisplay(population)
 kableExtra::kable(df)
+```
+
+## Maps
+
+```{r maps, warning=FALSE}
+countries <- NULL#c('Canada', 'Italy')
+normBy <- 'population'
+metric <- 'total_cases'
+events <- getEventsMapDb(countries,
+                         metric,
+                         date = '2021-01-31',
+                         normBy,
+                         multiplyFactor =  100)
+doMap(events, FALSE)
+
+countries <- c('Canada', 'Italy')
+normBy <- NULL
+metric <- 'total_cases'
+events <- getEventsMapDb(countries,
+                         metric,
+                         date = '2021-01-31',
+                         normBy,
+                         multiplyFactor =  100)
+doMap(events, TRUE)
+
 ```
 
 Last update `r Sys.Date()`.

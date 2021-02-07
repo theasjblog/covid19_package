@@ -48,8 +48,34 @@ getAllData <- function(){
                                       "numeric", "numeric", "numeric"))
   # tidy up
   colnames(allData)[colnames(allData)=='location'] <- 'Country'
+  allData$Country[allData$Country=="Cote d'Ivoire"] <- 'Ivory Coast'
   allData$date <- as.character(allData$date)
+  allData <- as.data.frame(allData)
+  
   return(allData)
+}
+
+#' @title getgetAreasForMapPopulation
+#' @description remove aggregated areas from the map as we plot
+#' only at country level 
+#' @param possibleCountries (character) vector of getAllData()$Country
+#' @return character vector of countries only 
+getAreasForMap <- function(possibleCountries){
+  
+  world <- ne_countries(scale = "medium", returnclass = "sf")
+  
+  allCountries <- unique(possibleCountries)
+  iso3 <- countrycode(allCountries,
+                      origin = 'country.name',
+                      destination = 'iso3c')
+  
+  idx <- which(!is.na(iso3) & iso3 %in% world$gu_a3)
+  allCountries <- allCountries[idx]
+  iso3 <- iso3[idx]
+  allCountries <- data.frame(Country = allCountries,
+                             iso3 = iso3)
+  
+  return(allCountries)
 }
 
 #' @title getPopulation
@@ -60,7 +86,7 @@ getPopulation <- function(allData){
   # select column with country metrics that do not change
   # with the time series
   populationData <- allData %>%
-    select(Country,
+    dplyr::select(Country,
            population,
            population_density,
            median_age,
@@ -95,7 +121,7 @@ getPopulation <- function(allData){
 getEvents <- function(allData){
   # select column with time-related events
   eventsData <- allData %>%
-    select(Country,
+    dplyr::select(Country,
            date,
            total_cases,
            new_cases,
@@ -123,6 +149,7 @@ getEvents <- function(allData){
   # make the table long
   eventsData <- melt(eventsData, id=seq(1,2),
                      measure=seq(3,ncol(eventsData)))
+  eventsData$value <- as.numeric(eventsData$value)
   
   return(eventsData)
 }
@@ -136,12 +163,19 @@ getEvents <- function(allData){
 updateDb <- function(){
   # get the data from the web
   allData <- getAllData()
+  # get the countries that can be mapped
+  mappableCountries <- getAreasForMap(allData$Country)
   # get population data
   populationData <- getPopulation(allData)
   # get events data
   eventsData <- getEvents(allData)
+  # remove nas
+  eventsData <- fillNAs(eventsData)
   # connect to the database
   con <- dbConnect(RSQLite::SQLite(), "testdb")
+  # add to the database the mappable countries
+  dbWriteTable(con, "mappable",
+               mappableCountries, overwrite = TRUE)
   # add to the database the population data
   dbWriteTable(con, "population",
                populationData, overwrite = TRUE)
@@ -185,6 +219,13 @@ getEventsDb <- function(countries, metrics){
 getPopulationDb <- function(countries){
   # connect to the database
   con <- dbConnect(RSQLite::SQLite(), "testdb")
+  if(is.null(countries)){
+    sqltxt <- "SELECT DISTINCT Country FROM population"
+    # get results from database
+    countries <- dbSendQuery(con, sqltxt)
+    countries <- dbFetch(countries)$Country
+    
+  }
   # query string
   sqltxt <- sprintf("SELECT * FROM population WHERE Country IN('%s')",
                     paste(countries, collapse = "','"))
@@ -206,23 +247,34 @@ getPopulationDb <- function(countries){
 fillNAs <- function(df){
   # make sure that the df is ordered by date
   df <- df[order(df$date),]
-  # split by contry
+  df$value <- as.numeric(df$value)
+  # split by country
   sp <- split(df, df$Country)
   res <- lapply(sp, function(d){
     # split by variable
     spInt <- split(d, d$variable)
     resInt <- lapply(spInt, function(dInt){
-      # replace inner NAs
-      newVal <- na.approx(dInt$value, na.rm=FALSE)
-      # check if we stll have nas
-      idx <- which(!is.na(newVal))
-      if(idx[1]!=1){
-        # replace leading nas
-        newVal[seq(1,idx[1])] <- 0
+      if(all(is.na(dInt$value))){
+        newVal <- rep(0, nrow(dInt))
+      } else {
+        if (sum(is.na(dInt$value))==1){
+          newVal <- dInt$value
+        } else {
+          # replace inner NAs
+          newVal <- na.approx(dInt$value, na.rm=FALSE)
+        }
       }
-      if(idx[length(idx)]!=nrow(dInt)){
-        # replace trailing nas
-        newVal[idx[length(idx)]+1] <- newVal[idx[length(idx)]]
+      # check if we still have nas
+      idx <- which(!is.na(newVal))
+      if (length(idx) > 0 & length(idx) < nrow(dInt)){
+        if(idx[1]!=1){
+          # replace leading nas
+          newVal[seq(1,idx[1])] <- 0
+        }
+        if(idx[length(idx)]!=nrow(dInt)){
+          # replace trailing nas
+          newVal[seq(idx[length(idx)]+1, nrow(dInt))] <- newVal[idx[length(idx)]]
+        }
       }
       dInt$value <- newVal
       return(dInt)

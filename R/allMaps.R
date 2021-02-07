@@ -1,79 +1,92 @@
-allMaps <- function(df, populationDf, chosenDay, filterByCountry, plotMetric,
-                    normalizePop, quarantinePlot, binaryPlot, doTrend, GBth){
-  
-  #convert the given index to the corresponding column index in the daraframe
-  idxchosenDay <- getIdxChosenDay(df, chosenDay)
-  #convert colnames  to date, used in the colnames of the returned results
-  chosenDate <- getChosenDate(df, idxchosenDay-1)
-  filterByCountryOriginal <- filterByCountry
-  #get the country to plot
-  if(is.null(filterByCountry)){
-    filterByCountry <- as.character(unique(populationDf$Country))
-  }
-  # re
-  populationDf <- populationDf %>% 
-    filter(Country %in% filterByCountry & type == plotMetric)
-  # filter out the countries we do not map
-  df <- df %>% filter(ID %in% populationDf$ID)
-  # sum countries
-  df <- sumCountries(df, populationDf)
-  
-  if (normalizePop){
-    #normalize by population
-    df <- normalizeByPop(df)
-  }
-  
-  if (quarantinePlot){
-    df <- sumPast7(df, idxchosenDay)
-    if(binaryPlot){
-      df[which(df[,2]<GBth),2] <- GBth-10
-      df[which(df[,2]>=GBth),2] <- GBth+10
-    }
-  }
-  
-  countriesAvailable <- df$Country
-  
-  # trend
-  if (doTrend){
-    df <- apply(df, 1, trendFunction, idxchosenDay)
-    val <- data.frame(Country = countriesAvailable,
-                      value = df,
-                      variable = chosenDate)
+#' @title getEventsMapDb
+#' @description get the data for the map
+#' @param countries (character) vector of countries to plot
+#' @param metric (character) the metric to plot
+#' @param date (character) the date to plot in
+#' the format "YYYY-MM-DD"
+#' @param normBy (character) name of the column to use in population
+#' @param multiplyFactor (numeric) positive integer
+#' @return normalised events data.frame
+#' @export
+getEventsMapDb <- function(countries, metric, date,
+                           normBy, multiplyFactor){
+  # connect to the database
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  # query string
+  countriesDf <- getAvailableCountries()
+  if(is.null(countries)){
+    countries <- countriesDf$Country
+    iso3 <- countriesDf$iso3
   } else {
-    # melt
-    val <- melt(data = df, id.vars = c("Country"))
-    val$variable <- getDates(val$variable)
-    val <- val %>% filter(variable == chosenDate)
+    iso3 <- countriesDf$iso3[countriesDf$Country %in% countries]
+  }
+  sqltxt <- sprintf("SELECT * FROM events WHERE Country IN('%s') AND variable IN('%s') AND date='%s'",
+                    paste(countries, collapse = "','"),
+                    paste(metric, collapse = "','"),
+                    date)
+  # get results from database
+  res <- dbSendQuery(con, sqltxt)
+  res <- dbFetch(res)
+  idx <- which(countries %in% res$Country)
+  countries <- countries[idx]
+  iso3 <- iso3[idx]
+  # disconnect from database
+  dbDisconnect(con)
+  # set column type
+  res$date <- as.Date(res$date)
+  res$value <- as.numeric(res$value)
+  # normalise
+  if (!is.null(normBy)){
+    population <- getPopulationDb(countries)
+    res <- normaliseEvents(res, population,
+                           normBy,
+                           multiplyFactor = 1)
   }
   
-  val$Country <- countrycode(val$Country,
-                             origin = 'country.name',
-                             destination = 'iso3c')
-  colnames(val)[colnames(val) == 'Country'] <- 'gu_a3'
-  
+  # add the sf object for mapping plot
   world <- ne_countries(scale = "medium", returnclass = "sf")
-  chosenCountriesiso3c <- countrycode(filterByCountry,
-                                      origin = 'country.name',
-                                      destination = 'iso3c')
-  world <- world %>% filter(gu_a3 %in% chosenCountriesiso3c)
+  # this can be slow for many countries
+  # chosenCountriesiso3c <- countrycode(countries,
+  #                                     origin = 'country.name',
+  #                                     destination = 'iso3c')
+  world <- world %>% filter(gu_a3 %in% iso3)
+  res$gu_a3 <- iso3
+  res <- left_join(world, res, by='gu_a3')
   
-  world <- merge(world, val, by  = 'gu_a3', all = TRUE)
-  
-  res <- new('worldMap')
-  
-  slot(res, 'world') <- world
-  if(!is.null(filterByCountryOriginal)){
-    slot(res, 'filterByCountry') <- filterByCountry
-  }
-  if(!is.null(GBth)){
-    slot(res, 'th') <- GBth
-  }
   return(res)
 }
 
+#' @title getAvailableCountries
+#' @describe get a character vector of countires that can
+#' be plotted on the map
+getAvailableCountries <- function(){
+  # connect to the database
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  sqltxt <- "SELECT * FROM mappable"
+  # get results from database
+  countries <- dbSendQuery(con, sqltxt)
+  countries <- dbFetch(countries)
+  # disconnect from database
+  dbDisconnect(con)
+  
+  return(countries)
+}
 
-trendFunction <- function(x, idxchosenDay){
-  res <- median(diff(as.numeric(x[seq(idxchosenDay-5, idxchosenDay+1)])),
-                na.rm = TRUE)
-  return(res)
+#' @title doMap
+#' @description plot in amp chart
+#' @param df (data.frame) the dataframe from getEventsMapDb()
+#' @param doFacet (logical) TRUE if faceting the plot
+#' @return tmap object
+#' @export
+doMap <- function(df, doFacet){
+  g <- tm_shape(df) +
+    tm_borders() 
+  
+  g <- g + tm_fill('value', title = '')
+  
+  if(doFacet){
+    g <- g + tm_facets(by = "name_long")
+  }
+  
+  return(g)
 }
