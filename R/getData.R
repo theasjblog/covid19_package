@@ -394,3 +394,25 @@ getOptions <- function(table, field){
   
   return(res)
 }
+
+
+#' @title getLastDate
+#' @description get the latest date in the dataset
+#' @return a character
+#' @export
+getLastDate <- function(){
+  # connect to the database
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  
+  # query string
+  sqltxt <- "SELECT DISTINCT date FROM events"
+  # get results from database
+  res <- dbSendQuery(con, sqltxt)
+  res <- dbFetch(res)
+  res <- res[,1]
+  res <- as.character(max(as.Date(res)))
+  # close connection
+  dbDisconnect(con)
+  
+  return(res)
+}
