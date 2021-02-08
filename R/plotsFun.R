@@ -43,7 +43,9 @@ doPlot <- function(df){
     labs(x = '',
          y = '',
          title = myTitle) +
-    theme_minimal()
+    theme_minimal()  +
+    theme(legend.position="bottom")
+  
   return(p)
 }
 
