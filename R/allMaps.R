@@ -15,8 +15,9 @@ getEventsMapDb <- function(countries, metric, date,
   # query string
   countriesDf <- getAvailableCountries()
   if(is.null(countries)){
-    countries <- countriesDf$Country
-    iso3 <- countriesDf$iso3
+    
+    countries <- unique(countriesDf$Country)
+    iso3 <- unique(countriesDf$iso3)
   } else {
     iso3 <- countriesDf$iso3[countriesDf$Country %in% countries]
   }

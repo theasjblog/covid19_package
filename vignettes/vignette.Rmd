@@ -42,34 +42,35 @@ dbListFields(con, "events")
 dbDisconnect(con)
 ```
 
-### Population data
+## Work by country
 
-We can obtain country social-demographic information, such us population, average age, GDP etc.
+```{r bycountry, warning=FALSE}
+countries <- c('Canada', 'Italy')
+population <- getPopulationDb(countries)
+events <- getEventsDb(countries,
+                    c('total_vaccinations',
+                      'total_cases'))
+eventsPlot(events, population, NULL, 1)
+eventsPlot(events, population, 'population', 1e5)
 
-```{r population, warning=FALSE}
-population <- getPopulationDb(c('Canada', 'Italy'))
 ```
 
-### Events data
 
-We can obtain country-wise COVID metrics such as cases, vaccinations, testing, etc.
+## Work by groups of countries
 
-```{r events, warning=FALSE}
-events <- getEventsDb(c('Canada', 'Italy'),
-                      c('total_cases',
-                        'total_vaccinations'))
-```
+```{r, bygroup, warning=FALSE}
+groupsAre <- c('Africa', 'Europe')
+groups <- getCountriesFromGroups(groupsAre)
+countries <- unique(groups$Country)
+population <- getPopulationDb(countries)
+events <- getEventsDb(countries,
+                    c('total_vaccinations',
+                      'total_cases'))
+events <- aggregateCountries(events, groups)
+population <- aggregateCountries(population, groups)
 
-## Plots and tables
-
-### Plot events
-
-Plot normalising the data by country population. Plot will be number of cases and vaccaination every 100 inhabitants.
-
-```{r plotEvents, warning=FALSE}
-p <- eventsPlot(events, population, 'population', 100)
-p
-#ggplotly(p, tooltip = 'text')
+eventsPlot(events, population, NULL, 1)
+eventsPlot(events, population, 'population', 1e5)
 ```
 
 ### Plot population
@@ -78,44 +79,42 @@ This plot does not have y axis because metrics are normalised between 0 and 1 so
 It is advised to display the plot using plotly: `ggplotly(p, tooltip = 'text')` to get more information from the tooltip.
 
 ```{r plotPopulation, warning=FALSE}
-p <- populationPlot(population,
+countries <- c('Canada', 'Italy')
+population <- getPopulationDb(countries)
+events <- getEventsDb(countries,
+                    c('total_vaccinations',
+                      'total_cases'))
+populationPlot(population,
                     c('aged_65_older',
                       'aged_70_older',
                       'population'))
-p
+
 #ggplotly(p, tooltip = 'text')
 ```
 
-### Population data
-
-```{r populationData, warning=FALSE}
-df <- populationForDisplay(population)
-kableExtra::kable(df)
-```
 
 ## Maps
 
 ```{r maps, warning=FALSE}
-countries <- NULL#c('Canada', 'Italy')
-normBy <- 'population'
+countries <- NULL
+normBy <- NULL
 metric <- 'total_cases'
+date <- '2021-01-31'
+multiplyFactor <- 100
 events <- getEventsMapDb(countries,
                          metric,
-                         date = '2021-01-31',
+                         date,
                          normBy,
-                         multiplyFactor =  100)
+                         multiplyFactor)
 doMap(events, FALSE)
 
 countries <- c('Canada', 'Italy')
-normBy <- NULL
-metric <- 'total_cases'
 events <- getEventsMapDb(countries,
                          metric,
-                         date = '2021-01-31',
+                         date,
                          normBy,
-                         multiplyFactor =  100)
+                         multiplyFactor)
 doMap(events, TRUE)
-
 ```
 
 Last update `r Sys.Date()`.

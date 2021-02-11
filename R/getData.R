@@ -152,6 +152,7 @@ getPopulation <- function(allData){
     d
   })
   populationData <- bind_rows(populationData)
+  populationData <- melt(populationData, id='Country')
   
   return(populationData)
 }
@@ -196,6 +197,17 @@ getEvents <- function(allData){
   return(eventsData)
 }
 
+#' @title removeGroups
+#' @description remove entries like asia, africa,
+#' europe etc from the list of countries
+#' @param allData (dataframe) from getAllData()
+#' @param groups (dataframe) from
+removeGroups <- function(allData, groups){
+  allData <- allData %>% 
+    filter(!Country %in% groups$groups)
+  return(allData)
+}
+
 
 #' @title updateDb
 #' @description fetch new data from 'https://covid.ourworldindata.org/data/owid-covid-data.xlsx'
@@ -207,6 +219,8 @@ updateDb <- function(){
   allData <- getAllData()
   # get groups
   groups <- getGroups(allData)
+  # remove groups from allData
+  allData <- removeGroups(allData, groups)
   # get population data
   populationData <- getPopulation(allData)
   # get events data
@@ -274,6 +288,51 @@ getPopulationDb <- function(countries){
   return(res)
 }
 
+#' @title aggregateCountries
+#' @description aggregate countries by group
+#' @param df (dataframe) events or population
+#' @param groups (dataframe) a country-group mapping dataframe
+#' @export
+aggregateCountries <- function(df, groups){
+  if (!is.null(groups)){
+    df <- left_join(df, groups, by='Country')
+    df$Country <- df$groups
+  }
+  if ('date' %in% colnames(df)){
+    a <- df %>% 
+      group_by(Country,variable, date) %>%
+      summarize(sum(value,na.rm = TRUE))
+    colnames(a)[colnames(a)=="sum(value, na.rm = TRUE)"] <- 'value'
+  } else {
+    # population df
+    a <- df %>% 
+      group_by(Country,variable)
+    toMean <- c("population_density",
+                "median_age",
+                "aged_65_older",
+                "aged_70_older",
+                "gdp_per_capita",
+                "extreme_poverty",
+                "cardiovasc_death_rate",
+                "diabetes_prevalence",
+                "female_smokers",
+                "male_smokers",
+                "hospital_beds_per_thousand",
+                "life_expectancy",
+                "human_development_index")
+    meanDf <- a[which(a$variable %in% toMean),]
+    sumDf <- a[which(!a$variable %in% toMean),]
+    meanDf <- meanDf %>%
+      summarize(mean(value, na.rm = TRUE))
+    colnames(meanDf)[colnames(meanDf)=="mean(value, na.rm = TRUE)"] <- 'value'
+    sumDf <- sumDf %>%
+      summarize(sum(value, na.rm = TRUE))
+    colnames(sumDf)[colnames(sumDf)=="sum(value, na.rm = TRUE)"] <- 'value'
+    a <- bind_rows(meanDf, sumDf)
+  }
+  
+  return(a)
+}
 
 #' @title getCountriesFromGroups
 #' @description map groups to countries
@@ -360,7 +419,7 @@ normaliseEvents <- function(events, population, normBy, multiplyFactor = 1){
     # get country
     thisCountry <- unique(d$Country)
     # get normalization value
-    thisNormVal <- population[[normBy]][population$Country==thisCountry]
+    thisNormVal <- population$value[population$variable == normBy & population$Country==thisCountry]
     # normalise
     d$value <- multiplyFactor*d$value/thisNormVal
     return(d)

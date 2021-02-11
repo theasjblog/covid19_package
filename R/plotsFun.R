@@ -66,16 +66,6 @@ eventsPlot <- function(events, population, normBy=NULL, multiplyFactor = 1){
   return(p)
 }
 
-#' @title populationForDisplay
-#' @description remove columns of all nas
-#' @param population (data.frame) population dataframe
-#' @return population data frame 
-#' @export
-populationForDisplay <- function(population){
-  population <- population[,colSums(is.na(population))<nrow(population)]
-  return(population)
-}
-
 #' @title populationPlot
 #' @description plot population data
 #' @param population (data.frame) population dataframe
@@ -84,10 +74,7 @@ populationForDisplay <- function(population){
 #' @export
 populationPlot <- function(population, variables){
   # columns to keep
-  idx <- which(colnames(population) %in% c('Country',variables))
-  a <- population[,idx]
-  # long table
-  a <- melt(a, id='Country')
+  a <- population %>% filter(variable %in% variables)
   # the text to use in plotly tooltips
   a$text <- paste0('Country: ', a$Country, '\n',
                    a$variable, ': ', a$value)
@@ -98,7 +85,7 @@ populationPlot <- function(population, variables){
   a <- split(a, a$variable)
   a <- lapply(a, function(d){
     #normalize up to 1
-    d$value <- d$value/max(d$value)
+    d$value <- d$value/max(d$value, na.rm = TRUE)
     return(d)
   })
   a <- bind_rows(a)
