@@ -4,16 +4,22 @@
 \alias{getEventsDb}
 \title{getEventsDb}
 \usage{
-getEventsDb(countries, metrics)
+getEventsDb(con, groups, countries, date, metrics)
 }
 \arguments{
-\item{countries}{(character) vector of countries to retrive}
+\item{con}{(DBI) database connection}
 
-\item{metrics}{(character) vector of metrics to retrive}
+\item{groups}{(character)}
+
+\item{countries}{(character)}
+
+\item{date}{(character)}
+
+\item{metrics}{(character)}
 }
 \value{
-events data frame
+dataframe
 }
 \description{
-retrive events from the database
+get the events data from the database
 }

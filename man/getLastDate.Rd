@@ -4,7 +4,10 @@
 \alias{getLastDate}
 \title{getLastDate}
 \usage{
-getLastDate()
+getLastDate(con)
+}
+\arguments{
+\item{con}{(DBI)}
 }
 \value{
 a character

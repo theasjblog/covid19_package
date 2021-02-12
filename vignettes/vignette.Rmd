@@ -30,7 +30,7 @@ We can explore the database using the `rsqlite`/`DBI` package'
 
 ```{r exploreDb, warning=FALSE}
 # connec to the database
-con <- dbConnect(RSQLite::SQLite(), "testdb")
+con <- createConnection()
 
 # get tables
 dbListTables(con)
@@ -42,35 +42,115 @@ dbListFields(con, "events")
 dbDisconnect(con)
 ```
 
-## Work by country
 
 ```{r bycountry, warning=FALSE}
+library(covid19Visualizer)
+
+con <- createConnection()
+
+metric <- c('new_cases')
+multiplyFactor <- 1e6
+date <- NULL
+
+# group and no norm, plot
+countries <- NULL
+groups <- 'Asia'
+normBy <- NULL
+
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- aggregateCountries(con, events, groups)
+doPlot(events)
+
+
+# group and norm, plot
+countries <- NULL
+groups <- 'Asia'
+normBy <- 'population'
+
+population <- getPopulationDb(con, groups, countries)
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- aggregateCountries(con, events, groups)
+population <- aggregateCountries(con, population, groups)
+events <- normaliseEvents(events,
+                          population,
+                          normBy,
+                          multiplyFactor)
+
+doPlot(events)
+
+
+# country and no norm, plot
 countries <- c('Canada', 'Italy')
-population <- getPopulationDb(countries)
-events <- getEventsDb(countries,
-                    c('total_vaccinations',
-                      'total_cases'))
-eventsPlot(events, population, NULL, 1)
-eventsPlot(events, population, 'population', 1e5)
+groups <- NULL
+normBy <- NULL
 
-```
+events <- getEventsDb(con, groups, countries, date, metric)
+doPlot(events)
 
 
-## Work by groups of countries
+# country and norm, plot
+countries <- c('Canada', 'Italy')
+groups <- NULL
+normBy <- 'population'
 
-```{r, bygroup, warning=FALSE}
-groupsAre <- c('Africa', 'Europe')
-groups <- getCountriesFromGroups(groupsAre)
-countries <- unique(groups$Country)
-population <- getPopulationDb(countries)
-events <- getEventsDb(countries,
-                    c('total_vaccinations',
-                      'total_cases'))
-events <- aggregateCountries(events, groups)
-population <- aggregateCountries(population, groups)
+population <- getPopulationDb(con, groups, countries)
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- normaliseEvents(events,
+                          population,
+                          normBy,
+                          multiplyFactor)
+doPlot(events)
 
-eventsPlot(events, population, NULL, 1)
-eventsPlot(events, population, 'population', 1e5)
+
+# group and no norm, map
+countries <- NULL
+groups <- 'Asia'
+normBy <- NULL
+
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- getMapData(con, events)
+doMap(events, FALSE)
+
+
+# group and norm, map
+countries <- NULL
+groups <- 'Asia'
+normBy <- 'population'
+
+population <- getPopulationDb(con, groups, countries)
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- normaliseEvents(events,
+                          population,
+                          normBy,
+                          multiplyFactor)
+events <- getMapData(con, events)
+doMap(events, FALSE)
+
+
+# country and no norm, map
+countries <- c('Canada', 'Italy')
+groups <- NULL
+normBy <- NULL
+
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- getMapData(con, events)
+doMap(events, TRUE)
+
+
+# country and norm, map
+countries <- c('Canada', 'Italy')
+groups <- NULL
+normBy <- 'population'
+
+population <- getPopulationDb(con, groups, countries)
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- normaliseEvents(events,
+                          population,
+                          normBy,
+                          multiplyFactor)
+events <- getMapData(con, events)
+doMap(events, TRUE)
+
 ```
 
 ### Plot population
@@ -80,41 +160,23 @@ It is advised to display the plot using plotly: `ggplotly(p, tooltip = 'text')` 
 
 ```{r plotPopulation, warning=FALSE}
 countries <- c('Canada', 'Italy')
-population <- getPopulationDb(countries)
-events <- getEventsDb(countries,
-                    c('total_vaccinations',
-                      'total_cases'))
+groups <- NULL
+population <- getPopulationDb(con, groups, countries)
 populationPlot(population,
-                    c('aged_65_older',
-                      'aged_70_older',
-                      'population'))
-
-#ggplotly(p, tooltip = 'text')
-```
+               c('aged_65_older',
+                 'aged_70_older',
+                 'population'))
 
 
-## Maps
-
-```{r maps, warning=FALSE}
 countries <- NULL
-normBy <- NULL
-metric <- 'total_cases'
-date <- '2021-01-31'
-multiplyFactor <- 100
-events <- getEventsMapDb(countries,
-                         metric,
-                         date,
-                         normBy,
-                         multiplyFactor)
-doMap(events, FALSE)
+groups <- c('Europe', 'North America')
+population <- getPopulationDb(con, groups, countries)
+population <- aggregateCountries(con, population, groups)
+populationPlot(population,
+               c('aged_65_older',
+                 'aged_70_older',
+                 'population'))
 
-countries <- c('Canada', 'Italy')
-events <- getEventsMapDb(countries,
-                         metric,
-                         date,
-                         normBy,
-                         multiplyFactor)
-doMap(events, TRUE)
 ```
 
 Last update `r Sys.Date()`.

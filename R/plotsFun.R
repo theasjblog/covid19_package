@@ -24,16 +24,25 @@ getPlotData <- function(events, population, normBy=NULL, multiplyFactor = 1){
   return(events)
 }
 
+#' @title getText
+#' @description add a column of text for plotly to a dataframe
+#' @param df (dataframe)
+#' @return dataframe
+getText <- function(df){
+  df$text <- paste0('Country: ', df$Country, '\n',
+                    df$variable, ': ', df$value, '\n',
+                    'Date: ', as.character(df$date))
+  
+  return(df)
+}
+
 #' @title doPlot
 #' @description plot events data
 #' @param df (data.frame) events dataframe from getPlotData
 #' @return ggplot 
+#' @export
 doPlot <- function(df){
-  if ('normalisation' %in% colnames(df)){
-    myTitle <- unique(df$normalisation)
-  } else {
-    myTitle <- ''
-  }
+  df <- getText(df)
   p <- ggplot(df, aes(x = date,
                       y = value,
                       group = interaction(Country, variable),
@@ -42,7 +51,7 @@ doPlot <- function(df){
     geom_line() +
     labs(x = '',
          y = '',
-         title = myTitle) +
+         title = '') +
     theme_minimal()  +
     theme(legend.position="bottom")
   

@@ -4,9 +4,13 @@
 \alias{getPopulationDb}
 \title{getPopulationDb}
 \usage{
-getPopulationDb(countries)
+getPopulationDb(con, groups, countries)
 }
 \arguments{
+\item{con}{(DBI) database connection}
+
+\item{groups}{(character) a geographical group of countries}
+
 \item{countries}{(character) vector of countries to retrive}
 }
 \value{

@@ -16,6 +16,16 @@
 #' @import DBI
 #' @import readxl
 
+#' @title createConnection
+#' @description connect to the demo database
+#' @return DBI database connection
+#' @export
+createConnection <- function(){
+  con <- dbConnect(RSQLite::SQLite(), "testdb")
+  
+  return(con)
+}
+
 #' @title getAllData
 #' @description download data from 'https://covid.ourworldindata.org/data/owid-covid-data.xlsx'
 #' and import it as a dataframe 
@@ -212,9 +222,10 @@ removeGroups <- function(allData, groups){
 #' @title updateDb
 #' @description fetch new data from 'https://covid.ourworldindata.org/data/owid-covid-data.xlsx'
 #' and update the database
+#' @param con (DBI)
 #' @return nothing 
 #' @export 
-updateDb <- function(){
+updateDb <- function(con){
   # get the data from the web
   allData <- getAllData()
   # get groups
@@ -227,8 +238,6 @@ updateDb <- function(){
   eventsData <- getEvents(allData)
   # remove nas
   eventsData <- fillNAs(eventsData)
-  # connect to the database
-  con <- dbConnect(RSQLite::SQLite(), "testdb")
   # add to the database the mappable countries
   dbWriteTable(con, "groups",
                groups, overwrite = TRUE)
@@ -238,52 +247,60 @@ updateDb <- function(){
   # add to the database the events data
   dbWriteTable(con, "events",
                eventsData, overwrite = TRUE)
-  # close database connection
-  dbDisconnect(con)
 }
 
 #' @title getEventsDb
-#' @description retrive events from the database
-#' @param countries (character) vector of countries to retrive
-#' @param metrics (character) vector of metrics to retrive
-#' @return events data frame 
-#' @export 
-getEventsDb <- function(countries, metrics){
-  # connect to the database
-  con <- dbConnect(RSQLite::SQLite(), "testdb")
+#' @description get the events data from the database
+#' @param con (DBI) database connection
+#' @param groups (character)
+#' @param countries (character)
+#' @param date (character)
+#' @param metrics (character)
+#' @return dataframe
+#' @export
+getEventsDb  <- function(con, groups, countries, date, metrics){
+  if(!is.null(groups)){
+    # use either countries or groups
+    countries <- getCountriesFromGroups(con, groups)$Country
+  }
   # query string
   sqltxt <- sprintf("SELECT * FROM events WHERE Country IN('%s') AND variable IN('%s')",
                     paste(countries, collapse = "','"),
                     paste(metrics, collapse = "','"))
+  if (!is.null(date)){
+    sqltxt <- paste0(sqltxt,
+                     sprintf(" AND date IN('%s')"),
+                     date)
+  }
   # get results from database
   res <- dbSendQuery(con, sqltxt)
   res <- dbFetch(res)
   # set column type
   res$date <- as.Date(res$date)
   res$value <- as.numeric(res$value)
-  # disconnect from database
-  dbDisconnect(con)
   
   return(res)
 }
 
+
 #' @title getPopulationDb
 #' @description retrive population data from the database
+#' @param con (DBI) database connection
+#' @param groups (character) a geographical group of countries
 #' @param countries (character) vector of countries to retrive
 #' @return population data frame 
 #' @export 
-getPopulationDb <- function(countries){
-  # connect to the database
-  con <- dbConnect(RSQLite::SQLite(), "testdb")
-    
+getPopulationDb <- function(con, groups, countries){
+  if(!is.null(groups)){
+    # use either countries or groups
+    countries <- getCountriesFromGroups(con, groups)$Country
+  }
   # query string
   sqltxt <- sprintf("SELECT * FROM population WHERE Country IN('%s')",
                     paste(countries, collapse = "','"))
   # get results from database
   res <- dbSendQuery(con, sqltxt)
   res <- dbFetch(res)
-  # close connection
-  dbDisconnect(con)
   
   return(res)
 }
@@ -291,13 +308,15 @@ getPopulationDb <- function(countries){
 #' @title aggregateCountries
 #' @description aggregate countries by group
 #' @param df (dataframe) events or population
+#' @param con (DBI)
 #' @param groups (dataframe) a country-group mapping dataframe
 #' @export
-aggregateCountries <- function(df, groups){
-  if (!is.null(groups)){
-    df <- left_join(df, groups, by='Country')
-    df$Country <- df$groups
-  }
+aggregateCountries <- function(con, df, groups){
+  
+  countries <- getCountriesFromGroups(con, groups)
+  df <- left_join(df, countries, by='Country')
+  df$Country <- df$groups
+  
   if ('date' %in% colnames(df)){
     a <- df %>% 
       group_by(Country,variable, date) %>%
@@ -336,19 +355,16 @@ aggregateCountries <- function(df, groups){
 
 #' @title getCountriesFromGroups
 #' @description map groups to countries
+#' @param con (DBI)
 #' @param groups (character) vector of groups to retrive
 #' @return data frame
 #' @export
-getCountriesFromGroups <- function(groups){
-  # connect to the database
-  con <- dbConnect(RSQLite::SQLite(), "testdb")
+getCountriesFromGroups <- function(con, groups){
   sqltxt <- sprintf("SELECT * FROM groups WHERE groups IN('%s')",
                     paste0(groups, collapse = "','"))
   # get results from database
   countries <- dbSendQuery(con, sqltxt)
   countries <- dbFetch(countries)
-  # close connection
-  dbDisconnect(con)
   
   return(countries)
 }
@@ -412,6 +428,7 @@ fillNAs <- function(df){
 #' @param normBy (character) name of the column to use in population
 #' @param multiplyFactor (numeric) positive integer
 #' @return normalised events data.frame
+#' @export
 normaliseEvents <- function(events, population, normBy, multiplyFactor = 1){
   # split by country
   sp <- split(events, events$Country)
@@ -434,11 +451,10 @@ normaliseEvents <- function(events, population, normBy, multiplyFactor = 1){
 #' field of the specified table
 #' @param table (character) the name of the database table
 #' @param field (character) the name of the field in the table
+#' @param con (DBI)
 #' @return a character vector
 #' @export
-getOptions <- function(table, field){
-  # connect to the database
-  con <- dbConnect(RSQLite::SQLite(), "testdb")
+getOptions <- function(con, table, field){
   
   # query string
   sqltxt <- sprintf("SELECT DISTINCT %s FROM %s",
@@ -448,8 +464,6 @@ getOptions <- function(table, field){
   res <- dbSendQuery(con, sqltxt)
   res <- dbFetch(res)
   res <- res[,1]
-  # close connection
-  dbDisconnect(con)
   
   return(res)
 }
@@ -457,11 +471,10 @@ getOptions <- function(table, field){
 
 #' @title getLastDate
 #' @description get the latest date in the dataset
+#' @param con (DBI)
 #' @return a character
 #' @export
-getLastDate <- function(){
-  # connect to the database
-  con <- dbConnect(RSQLite::SQLite(), "testdb")
+getLastDate <- function(con){
   
   # query string
   sqltxt <- "SELECT DISTINCT date FROM events"
@@ -470,8 +483,6 @@ getLastDate <- function(){
   res <- dbFetch(res)
   res <- res[,1]
   res <- as.character(max(as.Date(res)))
-  # close connection
-  dbDisconnect(con)
   
   return(res)
 }

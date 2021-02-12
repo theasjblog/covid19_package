@@ -4,9 +4,11 @@
 \alias{getCountriesFromGroups}
 \title{getCountriesFromGroups}
 \usage{
-getCountriesFromGroups(groups)
+getCountriesFromGroups(con, groups)
 }
 \arguments{
+\item{con}{(DBI)}
+
 \item{groups}{(character) vector of groups to retrive}
 }
 \value{

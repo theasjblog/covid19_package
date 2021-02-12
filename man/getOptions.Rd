@@ -4,9 +4,11 @@
 \alias{getOptions}
 \title{getOptions}
 \usage{
-getOptions(table, field)
+getOptions(con, table, field)
 }
 \arguments{
+\item{con}{(DBI)}
+
 \item{table}{(character) the name of the database table}
 
 \item{field}{(character) the name of the field in the table}

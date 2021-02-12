@@ -4,7 +4,10 @@
 \alias{updateDb}
 \title{updateDb}
 \usage{
-updateDb()
+updateDb(con)
+}
+\arguments{
+\item{con}{(DBI)}
 }
 \value{
 nothing

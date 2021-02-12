@@ -4,9 +4,11 @@
 \alias{aggregateCountries}
 \title{aggregateCountries}
 \usage{
-aggregateCountries(df, groups)
+aggregateCountries(con, df, groups)
 }
 \arguments{
+\item{con}{(DBI)}
+
 \item{df}{(dataframe) events or population}
 
 \item{groups}{(dataframe) a country-group mapping dataframe}
