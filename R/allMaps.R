@@ -19,7 +19,7 @@ getEventsMapDb <- function(countries, metric, date,
     countries <- unique(countriesDf$Country)
     iso3 <- unique(countriesDf$iso3)
   } else {
-    iso3 <- countriesDf$iso3[countriesDf$Country %in% countries]
+    iso3 <- unique(countriesDf$iso3[countriesDf$Country %in% countries])
   }
   sqltxt <- sprintf("SELECT * FROM events WHERE Country IN('%s') AND variable IN('%s') AND date='%s'",
                     paste(countries, collapse = "','"),
@@ -41,7 +41,7 @@ getEventsMapDb <- function(countries, metric, date,
     population <- getPopulationDb(countries)
     res <- normaliseEvents(res, population,
                            normBy,
-                           multiplyFactor = 1)
+                           multiplyFactor)
   }
   
   # add the sf object for mapping plot
