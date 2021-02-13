@@ -2,6 +2,8 @@
 
 export(aggregateCountries)
 export(createConnection)
+export(displayEvents)
+export(displayPopulation)
 export(doMap)
 export(doPlot)
 export(eventsPlot)

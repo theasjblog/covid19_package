@@ -486,3 +486,33 @@ getLastDate <- function(con){
   
   return(res)
 }
+
+#' @title displayEvents
+#' @description format events table to be displayed in the app
+#' @param events (dataframe)
+#' @return dataframe
+#' @export
+displayEvents <- function(events){
+  events <- events %>%
+    group_by(Country) %>%
+    # only display the latest date
+    filter(date == max(date))
+  return(events)
+}
+
+#' @title displayPopulation
+#' @description format population table to be displayed in the app
+#' @param events (dataframe)
+#' @param cols (character) variables to be included. If NULL,
+#' all variables will be included
+#' @return dataframe
+#' @export
+displayPopulation <- function(population, cols){
+  if(is.null(cols)){
+    cols <- unique(population$variable)
+  }
+  population <- population %>%
+    filter(variable %in% cols)
+  
+  return(population)
+}
