@@ -1,7 +1,6 @@
 ---
 title: "covid19Visualizer"
 author: "Adrian Joseph"
-date: "3/29/2020"
 output: html_document
 ---
 
@@ -11,198 +10,173 @@ knitr::opts_chunk$set(echo = TRUE)
 library('ff')
 library('covid19Visualizer')
 library('kableExtra')
+library('DBI')
+library('here')
 ```
 
-#Introduction
+# Introduction
 
 Simple data visualizer for COVID-19 diffusion.
 
 ## Data
 
-Data is provided by Johns Hopkins University and is obtained from <https://github.com/CSSEGISandData/COVID-19>.
+### Database
 
-New data is obtained with (a network connection is required):
+Data is provided by `Our world in data` and is obtained from <https://covid.ourworldindata.org/data/owid-covid-data.xlsx>.
 
-```{r getNewData}
-refreshJHU()
-fromDir <- here::here('vignettes', 'COVID-19-master')
-toDir <- here::here('COVID-19-master')
-moveF <- file.move(fromDir,toDir)
-newData <- getJHU()
+New data is obtained with `updateDb()` (a network connection is required).
+
+We can explore the database using the `rsqlite`/`DBI` package'
+
+```{r exploreDb, warning=FALSE}
+# connec to the database
+con <- createConnection()
+
+# get tables
+dbListTables(con)
+
+# get fields in a table
+dbListFields(con, "events")
+
+# close database connection
+dbDisconnect(con)
 ```
 
-## Plot a single metric
 
-The data provide time series for total cases, deaths and recoveries.
+```{r bycountry, warning=FALSE}
+library(covid19Visualizer)
 
-Each metric can be plotted for selected countries using:
+con <- createConnection()
 
-```{r doPlot}
-# cases
-doPlot(dataObj = newData, typePlot = 'cases',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
+metric <- c('new_cases')
+multiplyFactor <- 1e6
+date <- NULL
 
-# deaths
-doPlot(dataObj = newData, typePlot = 'deaths',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
+# group and no norm, plot
+countries <- NULL
+groups <- 'Asia'
+normBy <- NULL
 
-# recovered
-doPlot(dataObj = newData, typePlot = 'recovered',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
-```
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- aggregateCountries(con, events, groups)
+doPlot(events)
 
-Each plot can be plotted in log10 scale:
-```{r doPlotLog}
-# cases
-doPlot(dataObj = newData, typePlot = 'cases',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'log', normalizeByPop = FALSE,
-       plotLim = NULL)
 
-# deaths
-doPlot(dataObj = newData, typePlot = 'deaths',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'log', normalizeByPop = FALSE,
-       plotLim = NULL)
+# group and norm, plot
+countries <- NULL
+groups <- 'Asia'
+normBy <- 'population'
 
-# recovered
-doPlot(dataObj = newData, typePlot = 'recovered',
-       geographyFilter = c('Italy', 'China'), plotRate = FALSE,
-       smooth = FALSE, scale = 'log', normalizeByPop = FALSE,
-       plotLim = NULL)
-```
+population <- getPopulationDb(con, groups, countries)
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- aggregateCountries(con, events, groups)
+population <- aggregateCountries(con, population, groups)
+events <- normaliseEvents(events,
+                          population,
+                          normBy,
+                          multiplyFactor)
 
-We can also plot the variation, rather than the raw numbers:
-```{r doPlotRate}
-# cases
-doPlot(dataObj = newData, typePlot = 'cases',
-       geographyFilter = c('Italy', 'China'), plotRate = TRUE,
-       smooth = TRUE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
+doPlot(events)
 
-# deaths
-doPlot(dataObj = newData, typePlot = 'deaths',
-       geographyFilter = c('Italy', 'China'), plotRate = TRUE,
-       smooth = TRUE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
 
-# recovered
-doPlot(dataObj = newData, typePlot = 'recovered',
-       geographyFilter = c('Italy', 'China'), plotRate = TRUE,
-       smooth = TRUE, scale = 'linear', normalizeByPop = FALSE,
-       plotLim = NULL)
-```
+# country and no norm, plot
+countries <- c('Canada', 'Italy')
+groups <- NULL
+normBy <- NULL
 
-## Plot all metrics for selected countires
+events <- getEventsDb(con, groups, countries, date, metric)
+doPlot(events)
 
-```{r plotAllMetrics}
-# linear
-plotAllMetrics(dataObj = newData, geographyFilter = c('Italy', 'China'),
-               plotRate = FALSE, smooth = TRUE, scale = 'linear',
-               normalizeByPop = FALSE, plotLim = NULL)
 
-# log
-plotAllMetrics(dataObj = newData, geographyFilter = c('Italy', 'China'),
-               plotRate = FALSE, smooth = TRUE, scale = 'log',
-               normalizeByPop = FALSE, plotLim = NULL)
-```
+# country and norm, plot
+countries <- c('Canada', 'Italy')
+groups <- NULL
+normBy <- 'population'
 
-And the rate:
+population <- getPopulationDb(con, groups, countries)
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- normaliseEvents(events,
+                          population,
+                          normBy,
+                          multiplyFactor)
+doPlot(events)
 
-```{r plotAllMetricsRate}
-plotAllMetrics(dataObj = newData, geographyFilter = c('Italy', 'China'),
-               plotRate = TRUE, smooth = TRUE, scale = 'linear',
-               normalizeByPop = FALSE, plotLim = NULL)
-```
 
-## Map plots
+# group and no norm, map
+countries <- NULL
+groups <- 'Asia'
+normBy <- NULL
 
-```{r mapPlots}
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapTrend_normalise')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapTrend_normalise'))
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- getMapData(con, events)
+doMap(events, FALSE)
 
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapTrend')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapTrend'))
 
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapDataRate_raw')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapDataRate_raw'))
+# group and norm, map
+countries <- NULL
+groups <- 'Asia'
+normBy <- 'population'
 
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapDataRate_normalised')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapDataRate_normalised'))
+population <- getPopulationDb(con, groups, countries)
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- normaliseEvents(events,
+                          population,
+                          normBy,
+                          multiplyFactor)
+events <- getMapData(con, events)
+doMap(events, FALSE)
 
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapGBQuarantine_binary')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapGBQuarantine_binary'))
 
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapGBQuarantine')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapGBQuarantine'))
+# country and no norm, map
+countries <- c('Canada', 'Italy')
+groups <- NULL
+normBy <- NULL
 
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapData_raw')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapData_raw'))
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- getMapData(con, events)
+doMap(events, TRUE)
 
-#################################
-world <- getWorld(plotData = newData,
-                        filterByCountry = c('Canada', 'Italy', 'Spain', 'Brazil'),
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapData_normalised')
-plotMap(world)
-print(getMapTitle(world,
-                        plotMetric = 'cases', chosenDay = NULL,
-                        plotType = 'doMapData_normalised'))
 
+# country and norm, map
+countries <- c('Canada', 'Italy')
+groups <- NULL
+normBy <- 'population'
+
+population <- getPopulationDb(con, groups, countries)
+events <- getEventsDb(con, groups, countries, date, metric)
+events <- normaliseEvents(events,
+                          population,
+                          normBy,
+                          multiplyFactor)
+events <- getMapData(con, events)
+doMap(events, TRUE)
 
 ```
 
+### Plot population
+
+This plot does not have y axis because metrics are normalised between 0 and 1 so that they can be visualised even when massively different (i.e. population and age). 
+It is advised to display the plot using plotly: `ggplotly(p, tooltip = 'text')` to get more information from the tooltip.
+
+```{r plotPopulation, warning=FALSE}
+countries <- c('Canada', 'Italy')
+groups <- NULL
+population <- getPopulationDb(con, groups, countries)
+populationPlot(population,
+               c('aged_65_older',
+                 'aged_70_older',
+                 'population'))
+
+
+countries <- NULL
+groups <- c('Europe', 'North America')
+population <- getPopulationDb(con, groups, countries)
+population <- aggregateCountries(con, population, groups)
+populationPlot(population,
+               c('aged_65_older',
+                 'aged_70_older',
+                 'population'))
+
+```
+
+Last update `r Sys.Date()`.
