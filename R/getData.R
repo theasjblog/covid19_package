@@ -319,9 +319,25 @@ aggregateCountries <- function(con, df, groups){
   
   if ('date' %in% colnames(df)){
     a <- df %>% 
-      group_by(Country,variable, date) %>%
-      summarize(sum(value,na.rm = TRUE))
-    colnames(a)[colnames(a)=="sum(value, na.rm = TRUE)"] <- 'value'
+      group_by(Country,variable, date)
+    toMean <- c('positive_rate',
+                'reproduction_rate',
+                'tests_per_case')
+    meanDf <- a[which(a$variable %in% toMean),]
+    sumDf <- a[which(!a$variable %in% toMean),]
+    if (nrow(meanDf)>0){
+      meanDf <- meanDf %>%
+        summarize(mean(value, na.rm = TRUE))
+      colnames(meanDf)[colnames(meanDf)=="mean(value, na.rm = TRUE)"] <- 'value'
+    }
+    if (nrow(sumDf)>0){
+      sumDf <- sumDf %>%
+        summarize(sum(value, na.rm = TRUE))
+      colnames(sumDf)[colnames(sumDf)=="sum(value, na.rm = TRUE)"] <- 'value'
+    }
+    
+    a <- bind_rows(meanDf, sumDf)
+    
   } else {
     # population df
     a <- df %>% 
