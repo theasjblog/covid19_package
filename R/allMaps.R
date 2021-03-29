@@ -5,7 +5,12 @@
 #' @return dataframe
 #' @export
 getMapData <- function(con, events){
-  
+  # population data does not have date
+  # with this we add a column to population
+  # so we can use it in this function
+  if(!'date' %in% colnames(events)){
+    events$date <- 1
+  }
   events <- events %>%
     group_by(Country) %>%
     filter(date == max(date))

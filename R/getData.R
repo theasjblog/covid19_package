@@ -256,9 +256,11 @@ updateDb <- function(con){
 #' @param countries (character)
 #' @param date (character)
 #' @param metrics (character)
+#' @param reScale (boolean) if rescaling in the 0-1 range
 #' @return dataframe
 #' @export
-getEventsDb  <- function(con, groups, countries, date, metrics){
+getEventsDb  <- function(con, groups, countries, date, 
+                         metrics, reScale = FALSE){
   if(!is.null(groups)){
     # use either countries or groups
     countries <- getCountriesFromGroups(con, groups)$Country
@@ -278,7 +280,11 @@ getEventsDb  <- function(con, groups, countries, date, metrics){
   # set column type
   res$date <- as.Date(res$date)
   res$value <- as.numeric(res$value)
-  
+  # rescale
+  if (reScale){
+    res <- res %>% group_by(Country,variable) %>% 
+      mutate(across(value, scales::rescale))
+  }
   return(res)
 }
 
