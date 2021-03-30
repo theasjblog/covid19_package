@@ -39,9 +39,15 @@ getText <- function(df){
 #' @title doPlot
 #' @description plot events data
 #' @param df (data.frame) events dataframe from getPlotData
+#' @param reScale (boolean) if rescaling in the 0-1 range
 #' @return ggplot 
 #' @export
-doPlot <- function(df){
+doPlot <- function(df, reScale = FALSE){
+  # rescale
+  if (reScale){
+    df <- df %>% group_by(Country,variable) %>% 
+      mutate(across(value, scales::rescale))
+  }
   df <- getText(df)
   p <- ggplot(df, aes(x = date,
                       y = value,

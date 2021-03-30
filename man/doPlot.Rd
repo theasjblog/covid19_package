@@ -4,10 +4,12 @@
 \alias{doPlot}
 \title{doPlot}
 \usage{
-doPlot(df)
+doPlot(df, reScale = FALSE)
 }
 \arguments{
 \item{df}{(data.frame) events dataframe from getPlotData}
+
+\item{reScale}{(boolean) if rescaling in the 0-1 range}
 }
 \value{
 ggplot

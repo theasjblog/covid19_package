@@ -4,7 +4,7 @@
 \alias{getEventsDb}
 \title{getEventsDb}
 \usage{
-getEventsDb(con, groups, countries, date, metrics, reScale = FALSE)
+getEventsDb(con, groups, countries, date, metrics)
 }
 \arguments{
 \item{con}{(DBI) database connection}
@@ -16,8 +16,6 @@ getEventsDb(con, groups, countries, date, metrics, reScale = FALSE)
 \item{date}{(character)}
 
 \item{metrics}{(character)}
-
-\item{reScale}{(boolean) if rescaling in the 0-1 range}
 }
 \value{
 dataframe
