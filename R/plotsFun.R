@@ -30,7 +30,7 @@ getPlotData <- function(events, population, normBy=NULL, multiplyFactor = 1){
 #' @return dataframe
 getText <- function(df){
   df$text <- paste0('Country: ', df$Country, '\n',
-                    df$variable, ': ', df$value, '\n',
+                    df$variable, ': ', round(df$value, 3), '\n',
                     'Date: ', as.character(df$date))
   
   return(df)
@@ -43,12 +43,13 @@ getText <- function(df){
 #' @return ggplot 
 #' @export
 doPlot <- function(df, reScale = FALSE){
+  df <- getText(df)
   # rescale
   if (reScale){
     df <- df %>% group_by(Country,variable) %>% 
       mutate(across(value, scales::rescale))
   }
-  df <- getText(df)
+  #df <- getText(df)
   p <- ggplot(df, aes(x = date,
                       y = value,
                       group = interaction(Country, variable),
@@ -59,7 +60,16 @@ doPlot <- function(df, reScale = FALSE){
          y = '',
          title = '') +
     theme_minimal()  +
+    scale_y_continuous(labels = function(x) format(x, 
+                                                   big.mark = ',',
+                                                   scientific = FALSE)) +
     theme(legend.position="bottom")
+  if (reScale){
+    p <- p +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank())
+  }
   
   return(p)
 }
