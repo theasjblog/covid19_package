@@ -15,6 +15,7 @@
 #' @import data.table
 #' @import DBI
 #' @import readxl
+#' @import scales
 
 #' @title createConnection
 #' @description connect to the demo database
@@ -258,7 +259,8 @@ updateDb <- function(con){
 #' @param metrics (character)
 #' @return dataframe
 #' @export
-getEventsDb  <- function(con, groups, countries, date, metrics){
+getEventsDb  <- function(con, groups, countries, date, 
+                         metrics){
   if(!is.null(groups)){
     # use either countries or groups
     countries <- getCountriesFromGroups(con, groups)$Country
