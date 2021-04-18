@@ -153,6 +153,24 @@ doMap(events, TRUE)
 
 ```
 
+## Make Predictions
+
+```{r makePredictions, warning=FALSE}
+metric <- c('new_cases_smoothed', 'total_vaccinations')
+date <- NULL
+
+# group and no norm, plot
+countries <- c('Canada', 'Italy')
+groups <- NULL
+normBy <- NULL
+
+events <- getEventsDb(con, groups, countries, date, metric)
+
+predictions <- predict_data(events,days_predict = 60, training_window = 14)
+doPlot(predictions, TRUE)
+```
+
+
 ### Plot population
 
 This plot does not have y axis because metrics are normalised between 0 and 1 so that they can be visualised even when massively different (i.e. population and age). 
