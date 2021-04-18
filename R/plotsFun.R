@@ -43,7 +43,7 @@ getText <- function(df){
 #' @return ggplot 
 #' @export
 doPlot <- function(df, reScale = FALSE){
-  df <- covid19Visualizer:::getText(df)
+  df <- getText(df)
   # rescale
   if (reScale){
     df <- df %>% group_by(Country,variable) %>% 
