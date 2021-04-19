@@ -58,7 +58,10 @@ get_best_model <- function(ts_data, train_window){
   best_model <- NULL
   for (i in c(
     #'base', # base is currently disabled
-    'snaive', 'ets', 'arima')){
+    #'snaive', 
+    #'ets', 
+    'arima'
+    )){
     this_model <- get_residuals(i, ts_data)
     if (!is.na(this_model$standard_error) && this_model$standard_error < lowest_residuals){
       # we found a model better than the one we had: save it and change the reference
@@ -161,18 +164,15 @@ assemble_data_plot_predictions <- function(predictions, ts_data,
                                    high_95),
                         category = categories)
   
-  conficence_df <- data.frame()
-  
   if (is.null(confidence)){
     final_df <- final_df %>%
-      filter(!categories %in% c('confidence_80',
-                                'confidence_95'))
+      dplyr::filter(!category %in% c('confidence_80', 'confidence_95'))
   } else if (confidence == 80){
     final_df <- final_df %>%
-      filter(!categories %in% c('confidence_95'))
+      filter(!category %in% c('confidence_95'))
   } else if (confidence == 95){
     final_df <- final_df %>%
-      filter(!categories %in% c('confidence_80'))
+      filter(!category %in% c('confidence_80'))
   }
   
   final_df$value[final_df$value<0] <- NA
@@ -198,12 +198,10 @@ predict_data <- function(events, days_predict=60,
     spVariable <- split(thisCountry, thisCountry$variable)
     resVariable <- lapply(spVariable, function(thisVariable){
       best_model <- tryCatch({
-        get_best_model(thisVariable, 14)
+        get_best_model(thisVariable, training_window)
       },error = function(msg){
-        print('here')
-        return(msg)
+        return(NULL)
       })
-      
       predictions <- get_predictions(best_model, days_predict)
       
       final_df <- assemble_data_plot_predictions(predictions, thisVariable,
