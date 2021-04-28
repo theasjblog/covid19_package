@@ -49,13 +49,36 @@ doPlot <- function(df, reScale = FALSE){
     df <- df %>% group_by(Country,variable) %>% 
       mutate(across(value, scales::rescale))
   }
-  #df <- getText(df)
+  
+  # if we ran a prediction, plot it separately
+  if ('category' %in% colnames(df)){
+    # separate the data
+    pred_df <- df %>% filter(category %in% 'prediction')
+    df <- df %>% filter(!category %in% 'prediction')
+  } 
+  # plot the data
   p <- ggplot(df, aes(x = date,
                       y = value,
                       group = interaction(Country, variable),
                       colour = interaction(Country, variable),
-                      text = text)) +
-    geom_line() +
+                      text = text))
+  
+  p <- p +
+    geom_line()
+  
+  if ('category' %in% colnames(df)){
+    # plot the predictions, if available
+    p <- p +
+      geom_line(data = pred_df,
+                aes(x = date,
+                    y = value,
+                    colour = interaction(Country, variable)
+                    ),
+                linetype='dashed')
+  } 
+  
+  ## style the plot
+  p <- p +
     labs(x = '',
          y = '',
          title = '') +
@@ -65,10 +88,11 @@ doPlot <- function(df, reScale = FALSE){
                                                    scientific = FALSE)) +
     theme(legend.position="bottom")
   if (reScale){
+    # if we rescale, remove y labels as units become meaningless
     p <- p +
-    theme(axis.title.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank())
+      theme(axis.title.y = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks.y = element_blank())
   }
   
   return(p)
